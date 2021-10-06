@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ -z "$1" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    printf "Usage:\n\t ppool <KEY>=<VALUE> [<KEY2>=<VALUE2> ...]\n" && exit
+fi
+
+php-service ppool "$1"
+doco restart php

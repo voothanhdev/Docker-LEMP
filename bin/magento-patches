@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+source message-color
+
+[ ! -f "./vendor/bin/magento-patches" ] && msgError "vendor/bin/magento-patches is not file." && exit
+php-service "./vendor/bin/magento-patches" "$@"

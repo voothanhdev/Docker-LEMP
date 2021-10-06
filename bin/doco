@@ -1,0 +1,3 @@
+#!/bin/bash
+! hash docker-compose 2>/dev/null && echo "Docker Compose isn't installed." && exit
+docker-compose "$@"

@@ -1,0 +1,76 @@
+#!/bin/bash
+set -e
+
+OPTION_SQL="--sql"
+OPTION_PASS="--password"
+OPTION_DB="--database"
+
+SQL_PATH=""
+MYSQL_ROOT_PASSWORD=""
+MYSQL_DATABASE=""
+
+function help()
+{
+    printf "Usage: Import mysql database with docker-compose.
+        mysql-import [<option>]
+
+    Options:
+        %-40srequired\t\t\tPath of sql file.
+        %-40soptional\t\t\tMysql Password.
+        %-40soptional\t\t\tDatabase name.
+        -h, --help%-38s\t\t\tDisplay this help message
+    " "${OPTION_SQL}=[value]" "${OPTION_PASS}" "${OPTION_DB}=[value]" " "
+}
+
+function mapVariable()
+{
+    local option
+    local value
+
+    option=$(echo "$1" | tr "=" " " | awk '{print $1}')
+    value=$(echo "$1" | tr "=" " " | awk '{print $2}')
+
+    case $option in
+        "${OPTION_SQL}")
+            SQL_PATH="$value"
+            ;;
+        "${OPTION_PASS}")
+            MYSQL_ROOT_PASSWORD="$value"
+            ;;
+        "${OPTION_DB}")
+            MYSQL_DATABASE="$value"
+            ;;
+        "--help")
+            help && exit
+            ;;
+        "-h")
+            help && exit
+            ;;
+        *)
+            msgError "Option \`${option}\` doesn't exists\n" && help && exit
+            ;;
+    esac
+}
+
+for item in "$@"
+do
+    mapVariable "$item"
+done
+
+if [ -z "${SQL_PATH}" ]; then
+    read -p "SQL file path: " -e -r SQL_PATH
+fi
+
+if [ -z "${MYSQL_ROOT_PASSWORD}" ]; then
+    MYSQL_ROOT_PASSWORD=$(doco exec db printenv | grep MYSQL_ROOT_PASSWORD | tr "=" " " | awk '{print $2}')
+fi
+
+if [ -z "${MYSQL_DATABASE}" ]; then
+    MYSQL_DATABASE=$(doco exec db printenv | grep MYSQL_DATABASE | tr "=" " " | awk '{print $2}')
+fi
+
+if [[ "$SQL_PATH" == *"gz" ]]; then
+    zcat "$SQL_PATH" | doco exec -T db mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${MYSQL_DATABASE}"
+else
+    doco exec -T db mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${MYSQL_DATABASE}" < "$SQL_PATH"
+fi

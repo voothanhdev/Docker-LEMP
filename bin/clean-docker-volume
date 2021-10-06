@@ -1,0 +1,31 @@
+#!/bin/bash
+if [ -z "$1" ]; then
+    docker volume prune
+else
+    if [ "$1" == "--help" ] || [ "$1" == "-h" ];then
+            printf "Usage: Remove unused local volumes
+    clean-docker-container [<Exclude Volume Prefix> ...]
+default         Remove all unused local volumes
+
+    Options:
+        [Exclude Volume Prefix]         Prefix of volume will not remove. Can use the option multiple times, once
+        -h, --help                      Display this help message
+" && exit
+    fi
+
+    EXCLUDE=''
+    for item in "$@"
+    do
+        SUB_EXCLUDE=$(docker volume ls | grep "${item}" | awk '{print $2}' | paste -sd "|" -)
+
+        if [ -n "${SUB_EXCLUDE}" ]; then
+            if [ -n "${EXCLUDE}" ]; then
+                EXCLUDE="${EXCLUDE}|"
+            fi
+            EXCLUDE="${EXCLUDE}${SUB_EXCLUDE}"
+        fi
+    done
+
+    docker volume rm -f "$(docker volume ls | awk 'NR > 1 {print $2}' | grep -v -E "${EXCLUDE}")"
+fi
+

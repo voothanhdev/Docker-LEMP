@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+vhost "--folder=${ROOT_FOLDER}" "--server-name=${SERVER_NAME}" "--https=${HTTPS}" "--varnish-host=${VARNISH}" "--project-type=${PROJECT_TYPE}" "--varnish-port=${VARNISH_PORT}" "--proxy=${PROXY}" "--proxy-port=${PROXY_PORT}"
+
+# Update nginx config
+if [[ "${NGINX_CONFIG}" != '' ]]; then
+    mapfile -t NGINX_CONFIG < <(echo "${NGINX_CONFIG}" | tr ',' "\n")
+    nginx-config "${NGINX_CONFIG[@]}"
+fi
+
+nginx -t
+
+exec "$@"

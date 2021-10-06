@@ -1,0 +1,14 @@
+#!/bin/bash
+MODULES=""
+
+if [ -z "$1" ]; then
+    read -p "Modules: " -e -r MODULES
+else
+    if [ "$1" == "--help" ]; then
+        printf "Description: Disable PHP module(s).Usage:\nphp-disable [MODULE1] [MODULE2] ..." && exit
+    fi
+
+    MODULES=$1
+fi
+php-service php-disable "$MODULES"
+doco restart php

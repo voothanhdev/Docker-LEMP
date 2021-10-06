@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -e
+
+FMT_RED=$(printf '\033[31m')
+FMT_GREEN=$(printf '\033[32m')
+FMT_YELLOW=$(printf '\033[33m')
+FMT_BLUE=$(printf '\033[34m')
+FMT_BOLD=$(printf '\033[1m')
+FMT_RESET=$(printf '\033[0m')
+
+msgError() {
+    if [ -n "$2" ];then
+        printf '\r%sError: %s%s\n' "${FMT_BOLD}${FMT_RED}" "$1" "$FMT_RESET" >&2
+    else
+        printf '%sError: %s%s\n' "${FMT_BOLD}${FMT_RED}" "$1" "$FMT_RESET" >&2
+    fi
+}
+
+msgWarning() {
+    if [ -n "$2" ];then
+        printf '\r%sWarning: %s%s\n' "${FMT_BOLD}${FMT_YELLOW}" "$1" "$FMT_RESET" >&2
+    else
+        printf '%sWarning: %s%s\n' "${FMT_BOLD}${FMT_YELLOW}" "$1" "$FMT_RESET" >&2
+    fi
+}
+
+msgInfo() {
+    if [ -n "$2" ];then
+        printf '\r%s%s%s' "${FMT_BOLD}${FMT_BLUE}" "$1" "$FMT_RESET" >&2
+    else
+        printf '%s%s%s' "${FMT_BOLD}${FMT_BLUE}" "$1" "$FMT_RESET" >&2
+    fi
+}
+
+msgSuccess() {
+    if [ -n "$2" ];then
+        printf '\r%s%s%s\n' "${FMT_BOLD}${FMT_GREEN}" "$1" "$FMT_RESET" >&2
+    else
+        printf '%s%s%s\n' "${FMT_BOLD}${FMT_GREEN}" "$1" "$FMT_RESET" >&2
+    fi
+}
+

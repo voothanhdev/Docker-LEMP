@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+
+folder=$(pwd)
+
+if [ -n "$1" ]; then
+    if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+        printf "Usage: Init magento env file
+    init-magento-env [<path>]
+Options:
+    <path>          Optional           [path]/src/app/etc/env.php. Default: current
+" && exit
+    fi
+
+    folder="$1"
+fi
+
+lemp=$(dirname "$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )")
+init="${lemp}/init"
+helper="${lemp}/helper"
+
+source "${helper}/message-color"
+
+ENV_FILE="${folder}/src/app/etc/env.php"
+
+cp "${init}/env.php" "${ENV_FILE}"
+
+msgSuccess "$(printf "Magento env file is created in %s" "${ENV_FILE}")"

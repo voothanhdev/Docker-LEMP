@@ -1,0 +1,142 @@
+#!/bin/bash
+set -e
+
+OPTION_FOLDER="--folder"
+OPTION_MAGENTO="--is-magento"
+OPTION_PHP="--php"
+OPTION_DB="--database"
+OPTION_ELASTICSEARCH="--elasticsearch"
+OPTION_RABITMQ="--rabitmq"
+OPTION_REDIS="--redis"
+
+FOLDER=$(pwd)
+
+XDEBUG2="xdebug.remote_host=host.docker.internal"
+XDEBUG3="xdebug.client_host=host.docker.internal"
+
+lemp=$(dirname "$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )")
+init="${lemp}/init"
+helper="${lemp}/helper"
+
+USER=${USER:-$(id -u -n)}
+
+HOME="${HOME:-$(getent passwd $USER 2>/dev/null | cut -d: -f6)}"
+# macOS does not have getent, but this works even if $HOME is unset
+HOME="${HOME:-$(eval echo ~$USER)}"
+
+source "${helper}/message-color"
+source "${init}/.env"
+
+function help()
+{
+    printf "Usage: Init new docker compose file.
+        init-doco
+
+    Options:
+        %-40soptional\t\t\tPath of docker-compose file. Default: current
+        %-40soptional\t\t\tIs Magento Project. Default: %s
+        %-40soptional\t\t\tPHP image. Default: %s
+        %-40soptional\t\t\tDatabase image. Default: %s
+        %-40soptional\t\t\tElasticsearch image. Default: %s
+        %-40soptional\t\t\tRedis image. Default: %s
+        %-40soptional\t\t\tRabitMQ image. Default: %s
+        -h, --help%-38s\t\t\tDisplay this help message
+    " "${OPTION_FOLDER}=[value]" "${OPTION_MAGENTO}=[true|false]" "${IS_MAGENTO_PROJECT}" "${OPTION_PHP}=[value]" "${PHP_IMAGE}" "${OPTION_DB}=[value]" "${DB_IMAGE}" "${OPTION_ELASTICSEARCH}=[value]" "${ELASTICSEARCH_IMAGE}" "${OPTION_REDIS}=[value]" "${REDIS_IMAGE}" "${OPTION_RABITMQ}=[value]" "${RABITMQ_IMAGE}" " "
+}
+
+function mapVariable()
+{
+    local option
+    local value
+
+    option=$(echo "$1" | tr "=" " " | awk '{print $1}')
+    value=$(echo "$1" | tr "=" " " | awk '{print $2}')
+
+    case $option in
+        "${OPTION_FOLDER}")
+            FOLDER="$value"
+            ;;
+        "${OPTION_MAGENTO}")
+            IS_MAGENTO_PROJECT="$value"
+            ;;
+        "${OPTION_PHP}")
+            PHP_IMAGE="$value"
+            ;;
+        "${OPTION_REDIS}")
+            REDIS_IMAGE="$value"
+            ;;
+        "${OPTION_DB}")
+            DB_IMAGE="$value"
+            ;;
+        "${OPTION_ELASTICSEARCH}")
+            ELASTICSEARCH_IMAGE="$value"
+            ;;
+        "${OPTION_RABITMQ}")
+            RABITMQ_IMAGE="$value"
+            ;;
+        "--help")
+            ;;
+        "-h")
+            ;;
+        *)
+            msgError "Option \`${option}\` doesn't exists\n" && help && exit
+            ;;
+    esac
+}
+
+function execute()
+{
+    if [[ "${FOLDER}" = ~* ]]; then
+        FOLDER="${FOLDER/\~/${HOME}}"
+    fi
+
+    mkdir -p "${FOLDER}"
+    mkdir -p "/$HOME/docker/composer"
+    mkdir -p "/$HOME/docker/node"
+
+    COMPOSE_FILE="${FOLDER}/docker-compose.yml"
+    ENV_FILE="${FOLDER}/.env"
+
+    cp "$init/docker-compose.yml" "${COMPOSE_FILE}"
+    cp "$init/.env" "${ENV_FILE}"
+
+    PHP_VERSION=$(echo "${PHP_IMAGE}" | tr ':' ' ' | awk '{print $2}')
+    PHP_IMAGE=$(echo "${PHP_IMAGE}" | sed 's/[\.\/]/\\&/g')
+    DB_IMAGE=$(echo "${DB_IMAGE}" | sed 's/[\.\/]/\\&/g')
+    REDIS_IMAGE=$(echo "${REDIS_IMAGE}" | sed 's/[\.\/]/\\&/g')
+    ELASTICSEARCH_IMAGE=$(echo "${ELASTICSEARCH_IMAGE}" | sed 's/[\.\/]/\\&/g')
+    RABITMQ_IMAGE=$(echo "${RABITMQ_IMAGE}" | sed 's/[\.\/]/\\&/g')
+
+    if uname -a | grep -qEi "(Microsoft|WSL|Darwin)" &> /dev/null ; then
+        phpnumber="${PHP_VERSION/./}"
+        if [ -z "${PHP_VERSION}" ] || [ "${PHP_VERSION}" = "latest" ] || [ "$phpnumber" -gt 73 ] || [ "$phpnumber" -eq 0 ]; then
+            XDEBUG3=$(echo "${XDEBUG3}" | sed 's/[\.\/]/\\&/g')
+            sed -i.bak "s/^PHP_FPM_CONFIG.*/&${XDEBUG3}/g" "${ENV_FILE}"
+        else
+            XDEBUG2=$(echo "${XDEBUG2}" | sed 's/[\.\/]/\\&/g')
+            sed -i.bak "s/^PHP_FPM_CONFIG.*/&${XDEBUG2}/g" "${ENV_FILE}"
+        fi
+    fi
+
+    sed -i.bak "s/IS_MAGENTO_PROJECT=.*/IS_MAGENTO_PROJECT=${IS_MAGENTO_PROJECT}/g" "${ENV_FILE}"
+    sed -i.bak "s/PHP_IMAGE=.*/PHP_IMAGE=${PHP_IMAGE}/g" "${ENV_FILE}"
+    sed -i.bak "s/DB_IMAGE=.*/DB_IMAGE=${DB_IMAGE}/g" "${ENV_FILE}"
+    sed -i.bak "s/ELASTICSEARCH_IMAGE=.*/ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}/g" "${ENV_FILE}"
+    sed -i.bak "s/RABITMQ_IMAGE=.*/RABITMQ_IMAGE=${RABITMQ_IMAGE}/g" "${ENV_FILE}"
+    sed -i.bak "s/REDIS_IMAGE=.*/REDIS_IMAGE=${REDIS_IMAGE}/g" "${ENV_FILE}"
+
+    rm "${ENV_FILE}.bak"
+
+    msgSuccess "$(printf "Docker Compose file is created! Please update env in %s" "${ENV_FILE}")"
+}
+
+if [ "$1" == "--help" ] || [ "$1" == "-h" ];then
+     help && exit
+fi
+
+for item in "$@"
+do
+    mapVariable "$item"
+done
+
+execute

@@ -1,0 +1,245 @@
+#!/bin/bash
+
+set -e
+
+lemp=$(dirname "$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )")
+init="${lemp}/init"
+helper="${lemp}/helper"
+
+source "${helper}/message-color"
+source "${helper}/spin"
+source "${init}/.env"
+
+OPTION_FOLDER="--folder"
+OPTION_MAGENTO="--is-magento"
+OPTION_PHP="--php"
+OPTION_DB="--database"
+OPTION_ELASTICSEARCH="--elasticsearch"
+OPTION_RABITMQ="--rabitmq"
+OPTION_REDIS="--redis"
+OPTION_GIT="--git-url"
+OPTION_GIT_BRANCH="--git-branch"
+OPTION_COMPOSER="--composer"
+OPTION_COMPOSER_AUTH="--composer-auth"
+OPTION_DB_FILE="--database-file"
+OPTION_ENTER_INPUT="--input"
+
+FOLDER=$(pwd)
+GIT=""
+GIT_BRANCH=""
+GIT_USER=""
+GIT_PASS=""
+DATABASE=""
+AUTH_FILE=""
+COMPOSER=2
+NEED_INPUT=0
+
+function help()
+{
+    printf "Usage: Create new project with docker
+        create-project <option>
+
+    Options:
+        %-40soptional\t\t\tProject path. Default: current
+        %-40soptional\t\t\tIs Magento Project. Default: %s
+        %-40soptional\t\t\tPHP image. Default: %s
+        %-40soptional\t\t\tDatabase image. Default: %s
+        %-40soptional\t\t\tElasticsearch image. Default: %s
+        %-40soptional\t\t\tRedis image. Default: %s
+        %-40soptional\t\t\tRabitMQ image. Default: %s
+        %-40soptional\t\t\tGit url.
+        %-40soptional\t\t\tGit branch.
+        %-40soptional\t\t\tComposer version. Default: 2
+        %-40soptional\t\t\tCustom composer auth.json file path.
+        %-40soptional\t\t\tDatabase file path.
+        %-40soptional\t\t\tEnter input step by step.
+        -h, --help%-38s\t\t\tDisplay this help message
+    " "${OPTION_FOLDER}=[value]" "${OPTION_MAGENTO}=[true|false]" "${IS_MAGENTO_PROJECT}" "${OPTION_PHP}=[value]" "${PHP_IMAGE}" "${OPTION_DB}=[value]" "${DB_IMAGE}" "${OPTION_ELASTICSEARCH}=[value]" "${ELASTICSEARCH_IMAGE}" "${OPTION_REDIS}=[value]" "${REDIS_IMAGE}" "${OPTION_RABITMQ}=[value]" "${RABITMQ_IMAGE}" "${OPTION_GIT}=[value]" "${OPTION_GIT_BRANCH}=[value]" "${OPTION_COMPOSER}=[value]" "${OPTION_COMPOSER_AUTH}=[value]" "${OPTION_DB_FILE}=[value]"  "${OPTION_ENTER_INPUT}" " "
+}
+
+
+function msgCommand() {
+    spin "$2" & pid=$!
+    if eval "$1"; then
+        stopSpin ${pid} "$2";
+        msgSuccess "$3" true;
+    else
+        stopSpin ${pid} "$2";
+        msgError "$(cat "${FOLDER}/.log")" true;
+        exit
+    fi
+}
+
+function input() {
+    ## Enter root folder
+    read -p $"$(msgInfo "Enter Project Path: ")" -e -i "${FOLDER}" -r FOLDER
+    mkdir -p "${FOLDER}"
+
+    ## Docker compose config
+    read -p $"$(msgInfo "Is Magento Project: ")" -e -i "${IS_MAGENTO_PROJECT}" -r IS_MAGENTO_PROJECT
+    read -p $"$(msgInfo "PHP Image: ")" -e -i "${PHP_IMAGE}" -r PHP_IMAGE
+    read -p $"$(msgInfo "Composer Version: ")" -e -i "${COMPOSER}" -r COMPOSER
+    read -p $"$(msgInfo "Mysql Image: ")" -e -i "${DB_IMAGE}" -r DB_IMAGE
+    read -p $"$(msgInfo "Redis Image: ")" -e -i "${REDIS_IMAGE}" -r REDIS_IMAGE
+    read -p $"$(msgInfo "Elasticsearch Image: ")" -e -i "${ELASTICSEARCH_IMAGE}" -r ELASTICSEARCH_IMAGE
+    read -p $"$(msgInfo "RabitMQ Image: ")" -e -i "${RABITMQ_IMAGE}" -r RABITMQ_IMAGE
+
+    ## Enter database file path
+    read -p $"$(msgInfo "Database file to import (Empty is skip): ")" -e -r DATABASE
+    while [ -n "${DATABASE}" ] && [ ! -e "${DATABASE}" ]; do
+        msgError "${DATABASE} is not file!"
+        read -p $"$(msgInfo "DATABASE (Empty is skip import database): ")" -e -r DATABASE
+    done
+
+    ## Enter git repository
+    read -p $"$(msgInfo "GIT Repo URL (Empty is skip): ")" -e -r GIT
+    read -p $"$(msgInfo "GIT Branch (Empty is skip): ")" -e -r GIT_BRANCH
+    if [ -n "${GIT}" ] && [[ "${GIT}" == "http"* ]];then
+        read -p $"$(msgInfo "GIT Username: ")" -e -r GIT_USER
+        while [ -z "${GIT_USER}" ]; do
+            msgError "Username is required!"
+            read -p $"$(msgInfo "GIT Username: ")" -e -r GIT_USER
+        done
+
+        read -ps $"$(msgInfo "GIT Password: ")" -e -r GIT_PASS
+        while [ -z "${GIT_PASS}" ]; do
+            msgError "Password is required!"
+            read -ps $"$(msgInfo "GIT Password: ")" -e -r GIT_PASS
+        done
+
+        GIT="${GIT:0:8}${GIT_USER}:${GIT_PASS}@${GIT:8}"
+    fi
+
+    if [ -n "${GIT}" ]; then
+        ## Enter customer auth.json
+        read -p $"$(msgInfo "Custom auth.json File (Empty is default on git): ")" -e -r AUTH_FILE
+        while [ -n "${AUTH_FILE}" ] && [ ! -e "${AUTH_FILE}" ]; do
+            msgError "${AUTH_FILE} is not file!"
+            read -p $"$(msgInfo "Custom auth.json File (Empty is default on git): ")" -e -r AUTH_FILE
+        done
+    fi
+}
+
+
+function mapVariable()
+{
+    local option
+    local value
+
+    option=$(echo "$1" | tr "=" " " | awk '{print $1}')
+    value=$(echo "$1" | tr "=" " " | awk '{print $2}')
+
+    case $option in
+        "${OPTION_FOLDER}")
+            FOLDER="$value"
+            ;;
+        "${OPTION_MAGENTO}")
+            IS_MAGENTO_PROJECT="$value"
+            ;;
+        "${OPTION_PHP}")
+            PHP_IMAGE="$value"
+            ;;
+        "${OPTION_REDIS}")
+            REDIS_IMAGE="$value"
+            ;;
+        "${OPTION_DB}")
+            DB_IMAGE="$value"
+            ;;
+        "${OPTION_ELASTICSEARCH}")
+            ELASTICSEARCH_IMAGE="$value"
+            ;;
+        "${OPTION_RABITMQ}")
+            RABITMQ_IMAGE="$value"
+            ;;
+        "${OPTION_GIT}")
+            GIT="$value"
+            ;;
+        "${OPTION_GIT_BRANCH}")
+            GIT_BRANCH="$value"
+            ;;
+        "${OPTION_COMPOSER}")
+            COMPOSER="$value"
+            ;;
+        "${OPTION_COMPOSER_AUTH}")
+            AUTH_FILE="$value"
+            ;;
+        "${OPTION_DB_FILE}")
+            DATABASE="$value"
+            ;;
+        "${OPTION_ENTER_INPUT}")
+            NEED_INPUT=1
+            ;;
+        "--help")
+            help && exit
+            ;;
+        "-h")
+            help && exit
+            ;;
+        *)
+            msgError "Option \`${option}\` doesn't exists\n" && help && exit
+            ;;
+    esac
+}
+
+function cloneCode()
+{
+    if [ -n "${GIT}" ]; then
+        if [ -n "$GIT_BRANCH" ]; then
+            msgCommand "git clone -b ${GIT_BRANCH} ${GIT} ${FOLDER}/src 2>${FOLDER}/.log" 'Code is cloning' 'Clone code successful'
+        else
+            msgCommand "git clone ${GIT} ${FOLDER}/src 2>${FOLDER}/.log" 'Code is cloning' 'Clone code successful'
+        fi
+    fi
+}
+
+for item in "$@"
+do
+    mapVariable "$item"
+done
+
+if [ ${NEED_INPUT} -eq 1 ]; then
+    input
+fi
+
+init-doco --folder="${FOLDER}" \
+        --is-magento="${IS_MAGENTO_PROJECT}" \
+        --php="${PHP_IMAGE}" \
+        --database="${DB_IMAGE}" \
+        --elasticsearch="${ELASTICSEARCH_IMAGE}" \
+        --rabitmq="${RABITMQ_IMAGE}" \
+        --redis="${REDIS_IMAGE}"
+
+cloneCode
+
+if [ -n "${AUTH_FILE}" ]; then
+    cp -f "${AUTH_FILE}" "${FOLDER}/src/"
+fi
+
+cd "${FOLDER}"
+
+msgCommand "doco up -d --remove-orphans 2>${FOLDER}/.log" 'Docker Compose Starting' 'Docker Compose Started'
+
+msgCommand "composer install &>${FOLDER}/.log" 'Composer is installing' 'Composer is installed'
+
+if [ -n "$DATABASE" ]; then
+    sleep 2
+    msgCommand "mysql-import --sql=${DATABASE} 2>${FOLDER}/.log" 'Database is importing' 'Database is imported'
+fi
+
+if [ "${IS_MAGENTO_PROJECT}" == "true" ] && [ -d "${FOLDER}/src/vendor/magento" ]; then
+    init-magento-env "${FOLDER}"
+
+    if [ ! -e "${FOLDER}/src/app/etc/config.php" ]; then
+        mgt module:enable --all &>"${FOLDER}/.log"
+    fi
+
+    if [ -n "$DATABASE" ]; then
+        msgCommand "mgt s:up &>${FOLDER}/.log;" "Magento setup upgrade"
+        msgCommand "mgt ca:e --all &>${FOLDER}/.log;" "Magento enable all cache"
+        msgCommand "mgt deploy:mode:set developer &>${FOLDER}/.log;" "Magento set to develop mode"
+        msgCommand "mgt ca:f &>${FOLDER}/.log;" "Magento flush cache"
+        msgCommand "mgt in:rei &>${FOLDER}/.log;" "Magento reindex" "Magento setup done"
+    fi
+fi
+
+msgSuccess "Project Init Successful!"

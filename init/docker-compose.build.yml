@@ -1,0 +1,86 @@
+version: '3.5'
+services:
+    varnish:
+        build: ./images/varnish
+#        volumes:
+#             - "${VARNISH_VCL}:/etc/varnish/default.vcl"
+        ports:
+            - "${HTTP_PORT}"
+            - "${HTTPS_PORT}"
+        depends_on:
+            - nginx
+    nginx:
+        build: ./images/nginx
+        ports:
+            - "${HTTPS_PORT}:${HTTPS_PORT}"
+        environment:
+            - "IS_MAGENTO=${IS_MAGENTO_PROJECT}"
+            - "VARNISH=${VARNISH_SERVICE}"
+            - "NGINX_CONFIG=${NGINX_CONFIG}"
+        volumes: &app_volume
+            - ./src:/project:rw
+            - composer:/home/www/.composer:delegated
+            - sockdata:/sock
+        depends_on:
+            - php
+    php:
+        build:
+            context: ./images/php
+            args:
+                - VERSION=${PHP_FPM_VERSION}
+        ports:
+            - "9000"
+        volumes: *app_volume
+        environment:
+            - "MODULE_ENABLE=${PHP_FPM_MODULE_ENABLE}"
+            - "MODULE_DISABLE=${PHP_FPM_MODULE_DISABLE}"
+            - "PHP_CONFIG=${PHP_FPM_CONFIG}"
+            - "FPM_POOL=${PHP_FPM_POOL}"
+        depends_on:
+            - db
+            - redis
+            - elasticsearch
+    redis:
+        image: "${REDIS_IMAGE}"
+        ports:
+            - "6379"
+    elasticsearch:
+        image: "${ELASTICSEARCH_IMAGE}"
+        ports:
+            - "${ELASTICSEARCH_PORT}:${ELASTICSEARCH_PORT}"
+        environment:
+            - discovery.type=single-node
+        volumes:
+            - indexData:/usr/share/elasticsearch/data
+    mailhog:
+        build: ./images/mail
+        ports:
+            - "${EMAIL_PORT}:${EMAIL_PORT}"
+    rabbit:
+        image: "${RABITMQ_IMAGE}"
+        ports:
+            - "${RABITMS_PORT}:${RABITMS_PORT}"
+        volumes:
+            - rabbitmqdata:/var/lib/rabbitmq
+    db:
+        image: "${DB_IMAGE}"
+        ports:
+            - "${DB_PORT}:${DB_PORT}"
+        environment:
+            - "MYSQL_DATABASE=${DB_NAME}"
+            - "MYSQL_USER=${DB_USER}"
+            - "MYSQL_PASSWORD=${DB_PASS}"
+            - "MYSQL_ROOT_PASSWORD=${DB_ROOT_PASS}"
+        volumes:
+            - "dbData:${DB_DATA}"
+volumes:
+    indexData:
+    dbData:
+    rabbitmqdata:
+    sockdata:
+    composer:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: '~/composer'

@@ -1,0 +1,65 @@
+#!/bin/bash
+OPTION_KEY_ALL=--all
+OPTION_KEY_NOT_ACTIVE=--not-active
+OPTION_KEY_EXCLUDE=--exclude
+OPTION_NOT_ACTIVE=1
+OPTION_ALL=2
+option=${OPTION_NOT_ACTIVE}
+
+if [ -z "$1" ]; then
+    printf "
+    Select options
+        %d - Not Active Container (default)
+        %d - All Container
+    Enter:" "${OPTION_NOT_ACTIVE}" "${OPTION_ALL}"
+    read -r option
+
+    if [[ ${option} -ne ${OPTION_ALL} ]]; then
+        option=${OPTION_NOT_ACTIVE}
+    fi
+else
+    if [ "$1" == "--help" ] || [ "$1" == "-h" ];then
+        printf "Usage: Remove Docker Container
+    clean-docker-container
+
+Options:
+    --all                           Scope all container
+    --not-active                    Scope only not active container (default)
+    --exclude[=Container Prefix]    Prefix of Container will not remove. Can use the option multiple times, once
+    -h, --help                      Display this help message
+        " && exit
+    fi
+
+    EXCLUDE=''
+    for item in "$@"
+    do
+        if [ "$item" == "$OPTION_KEY_ALL" ];then
+            option=${OPTION_KEY_ALL}
+        elfi [ "$item" == "$OPTION_KEY_EXCLUDE" ]
+            item="${item/"$OPTION_KEY_EXCLUDE"=/""}"
+            SUB_EXCLUDE=$(docker ps -a --format "{{.Names}}" -f status=created -f status=exited | grep "${item}" | paste -sd "|" -)
+
+            if [ -n "${SUB_EXCLUDE}" ]; then
+                if [ -n "${EXCLUDE}" ]; then
+                    EXCLUDE="${EXCLUDE}|"
+                fi
+
+                EXCLUDE="${EXCLUDE}${SUB_EXCLUDE}"
+            fi
+        fi
+    done
+fi
+
+if [[ ${option} -eq ${OPTION_ALL} ]];then
+    if [ -n "${EXCLUDE}" ];then
+        docker rm -f "$(docker ps -a --format "{{.Names}}" | grep -v -E "${EXCLUDE}")"
+    else
+        docker rm -f "$(docker ps -a --format "{{.Names}}")"
+    fi
+else
+    if [ -n "${EXCLUDE}" ];then
+        docker rm -f "$(docker ps -a --format "{{.Names}}" -f status=created -f status=exited | grep -v -E "${EXCLUDE}")"
+    else
+        docker rm -f "$(docker ps -a --format "{{.Names}}" -f status=created -f status=exited)"
+    fi
+fi

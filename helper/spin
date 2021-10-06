@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -e
+MAX_REPEAT=25
+repeat () {
+    for (( i=1; i <= "${MAX_REPEAT}"; i++ ))
+    do
+        if [ "${i}" -gt "${2}" ]; then
+            echo -n " ";
+        else
+            echo -n "$1";
+        fi
+    done
+}
+
+spin() {
+    i=1
+    while true; do
+        sleep 1
+        printf "\r%s %s" "${1}" "$(repeat "#" $i)"
+        i=$((i + 1))
+
+        if [ ${i} -gt ${MAX_REPEAT} ];then
+            i=1
+        fi
+
+        wait
+    done
+}
+
+stopSpin() {
+    kill "$1"
+    length=$((${#2} + MAX_REPEAT))
+    printf "\r%s" "$(repeat ' ' $length)"
+}

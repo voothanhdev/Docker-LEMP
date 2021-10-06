@@ -1,0 +1,15 @@
+#!/bin/bash
+MODULES=""
+
+if [ -z "$1" ]; then
+    read -p "Modules: " -e -r MODULES
+else
+    if [ "$1" == "--help" ]; then
+        printf "Description: Enable PHP module(s).Usage:\nphp-enable [MODULE1] [MODULE2] ..." && exit
+    fi
+
+    MODULES=$1
+fi
+
+php-service php-enable "$MODULES"
+doco restart php

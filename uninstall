@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+USER=${USER:-$(id -u -n)}
+
+HOME="${HOME:-$(getent passwd $USER 2>/dev/null | cut -d: -f6)}"
+# macOS does not have getent, but this works even if $HOME is unset
+HOME="${HOME:-$(eval echo ~$USER)}"
+
+if [ -z "${VT_LEMP}" ];then
+    VT_LEMP="${VT_LEMP:-$HOME/.docker-lemp}"
+fi
+
+if echo "$SHELL" | grep "zsh" >/dev/null; then
+    sed -i "/VT_LEMP/d" "$HOME/.zshrc"
+elif echo "$SHELL" | grep "csh" >/dev/null; then
+    sed -i "/ VT_LEMP/d" "$HOME/.cshrc"
+elif echo "$SHELL" | grep "ksh" >/dev/null; then
+    sed -i "/VT_LEMP/d" "$HOME/.profile"
+elif echo "$SHELL" | grep "bash" >/dev/null; then
+    sed -i "/VT_LEMP/d" "$HOME/.bashrc"
+fi
+
+rm -rf "${VT_LEMP}"

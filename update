@@ -1,0 +1,31 @@
+USER=${USER:-$(id -u -n)}
+
+HOME="${HOME:-$(getent passwd $USER 2>/dev/null | cut -d: -f6)}"
+HOME="${HOME:-$(eval echo ~$USER)}"
+
+if [ -z "${VT_LEMP}" ];then
+    VT_LEMP="${VT_LEMP:-$HOME/.docker-lemp}"
+fi
+
+cd "${VT_LEMP}" || return 1;
+git fetch
+UPDATE="y"
+
+if [ "$(git rev-list HEAD...origin/master --count)" -lt 1 ]; then
+    cd && return 1;
+fi
+
+printf "\033[1m\033[34mDocker LEMP has a new version. Would you like to update? [Y/n] \033[0m "
+read -r UPDATE
+
+if [ -z "$UPDATE" ] || [ "$UPDATE" = $'\n' ]; then
+    UPDATE="y"
+fi
+
+case "$UPDATE" in
+    [yY])
+        git reset --hard origin/master > /dev/null;
+        printf "\033[1m\033[32mUpdate successful!\033[0m"
+        ;;
+esac
+cd || return 1;
