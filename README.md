@@ -37,6 +37,37 @@ Restart your device after it's installed.
 - `clean-docker-image`: Clean docker image no name
 - `clean-docker-container`: Clean docker container
 
+### Image command
+#### Nginx
+- `vhost`: Create new vhost
+  - `vhost -h`: Command description
+  - You can create new vhost in Docker Compose by adding `vhost` command to the `command` option of the `nginx` service
+  <pre>
+  command:
+        - vhost --folder= \
+                --server-name= \
+                --https= \
+                --varnish-host= \
+                --project-type= \
+                --varnish-port= \
+                --proxy-host= \
+                --proxy-port=
+        - vhost --folder= \
+                --server-name= \
+                --https= \
+                --varnish-host= \
+                --project-type= \
+                --varnish-port= \
+                --proxy-host= \
+                --proxy-port=
+        ...
+  </pre>
+#### PHP
+- `cron-start`: Start cron tab service
+- `download-n98`: Download n98 command for Magento
+- `optimize-composer1`: Install composer package `hirak/prestissimo`
+
+
 ## Email / Mailhog
 View emails sent locally through Mailhog by visiting http://localhost:8025
 
@@ -46,4 +77,4 @@ You can access elastic search index via: http://localhost:9200/.
 ## RabbitMQ
 You can access via: http://localhost:15672 . Default user/pass: guest/guest.
 
-    
+

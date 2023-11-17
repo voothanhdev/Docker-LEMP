@@ -39,5 +39,3 @@ VOLUME /etc/nginx/conf.d
 EXPOSE 443 80
 
 USER www
-
-CMD ["nginx", "-g", "daemon off;"]

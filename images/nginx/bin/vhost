@@ -1,5 +1,32 @@
 #!/bin/bash
 ########################################################################################################################
+### Notification #######################################################################################################
+########################################################################################################################
+FMT_RED=$(printf '\033[31m')
+FMT_GREEN=$(printf '\033[32m')
+FMT_YELLOW=$(printf '\033[33m')
+FMT_BLUE=$(printf '\033[34m')
+FMT_BOLD=$(printf '\033[1m')
+FMT_RESET=$(printf '\033[0m')
+
+msgError() {
+    if [ -n "$2" ];then
+        printf '\r%sError: %s%s\n' "${FMT_BOLD}${FMT_RED}" "$1" "$FMT_RESET" >&2
+    else
+        printf '%sError: %s%s\n' "${FMT_BOLD}${FMT_RED}" "$1" "$FMT_RESET" >&2
+    fi
+}
+
+msgSuccess() {
+    if [ -n "$2" ];then
+        printf '\r%s%s%s\n' "${FMT_BOLD}${FMT_GREEN}" "$1" "$FMT_RESET" >&2
+    else
+        printf '%s%s%s\n' "${FMT_BOLD}${FMT_GREEN}" "$1" "$FMT_RESET" >&2
+    fi
+}
+
+
+########################################################################################################################
 ### DEFAULT VALUES #####################################################################################################
 ########################################################################################################################
 SERVER_NAME_DEFAULT=localhost
@@ -15,8 +42,17 @@ PROXY_PORT=
 MAGENTO_INCLUDE="include /etc/nginx/include/magento.conf;"
 
 ########################################################################################################################
+### FILE PATHS #########################################################################################################
+########################################################################################################################
+CONFIG_PATH=/etc/nginx/conf.d/
+FILE_AUTO_HTTPS="${CONFIG_PATH}auto-https.conf"
+FILE_PHP_BE="${CONFIG_PATH}php.conf"
+
+
+########################################################################################################################
 ### OPTION CHOICE VALUES ###############################################################################################
 ########################################################################################################################
+PROJECT_TYPE_STATIC=0
 PROJECT_TYPE_PHP=1
 PROJECT_TYPE_MAGENTO=2
 PROJECT_TYPE_NODE=3
@@ -41,15 +77,15 @@ OPTION_HTTPS="--https"
 ########################################################################################################################
 ### TEMPLATES ##########################################################################################################
 ########################################################################################################################
-SSL_PORT="443 ssl http2"
+SSL_PORT="443 ssl"
 SSL_PROXY="
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Forwarded-Port 443;
         proxy_set_header X-Secure on;
 "
 SSL_TEMPLATE="
-    ssl_certificate /etc/nginx/ssl/nginx.crt;
-    ssl_certificate_key /etc/nginx/ssl/nginx.key;
+    ssl_certificate /etc/nginx/ssl/%s.crt;
+    ssl_certificate_key /etc/nginx/ssl/%s.key;
 "
 REAL_IP_TEMPLATE="
     set_real_ip_from   127.0.0.1;
@@ -65,7 +101,7 @@ PHP_LOCATION_TEMPLATE="
     location ~ \.php\$ {
         try_files \$uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)\$;
-        fastcgi_pass backend-server;
+        fastcgi_pass php-server;
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
@@ -78,7 +114,7 @@ HT_LOCATION_TEMPLATE="
     }
 "
 PHP_BE_TEMPLATE="
-upstream backend-server {
+upstream php-server {
     server unix:/sock/docker.sock;
 }
 "
@@ -94,6 +130,14 @@ server {
     server_name %s;
 
     set \$MAGE_ROOT %s;
+
+    # Add cors
+    set \$origin '\$http_origin';
+    add_header 'Access-Control-Allow-Origin' '\$origin' always;
+    add_header Access-Control-Allow-Methods 'GET, POST, PATCH, PUT, DELETE, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With,X-Cache-Hash,Store' always;
+    add_header Access-Control-Expose-Headers 'Content-Length,Content-Range' always;
+    add_header Access-Control-Allow-Credentials 'true' always;
     %s%s
     %s
 }
@@ -113,6 +157,14 @@ server {
     root %s;
 
     index index.php;
+
+    # Add cors
+    set \$origin '\$http_origin';
+    add_header 'Access-Control-Allow-Origin' '\$origin' always;
+    add_header Access-Control-Allow-Methods 'GET, POST, PATCH, PUT, DELETE, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With,X-Cache-Hash,Store' always;
+    add_header Access-Control-Expose-Headers 'Content-Length,Content-Range' always;
+    add_header Access-Control-Allow-Credentials 'true' always;
     %s%s
     ${PHP_LOCATION_ROOT_TEMPLATE}
     ${PHP_LOCATION_TEMPLATE}
@@ -146,11 +198,35 @@ AUTO_HTTPS_SERVER_TEMPLATE="
 server {
     listen 80;
 
-    return 301 https://\$host\$request_uri;
+    server_name %s;
+
+    return 301 https://%s\$request_uri;
+}
+"
+## S1   Listen port
+## S2   Server name
+## S3   Root folder
+## S4   Real Ip config
+## S5   SSL config
+HTML_SERVER_TEMPLATE="
+server {
+    listen %s;
+
+    server_name %s;
+
+    root %s;
+
+    index index.html;
+    %s%s
+    location / {
+        try_files \$uri /index.html;
+    }
 }
 "
 
-
+########################################################################################################################
+### Command Description ################################################################################################
+########################################################################################################################
 function help()
 {
     printf "Usage: Init new vhost.
@@ -159,19 +235,30 @@ function help()
     Options:
         %-40srequired\t\t\tRoot folder. Default: %s
         %-40srequired\t\t\tUse https (%s / %s). Default: %s
-        %-40srequired\t\t\tProject type (PHP: %s / Magento: %s / Node.js: %s)
+        %-40srequired\t\t\tProject type (HTML: %s / PHP: %s / Magento: %s / Node.js: %s)
         %-40soptional\t\t\tVarnish host (Empty is not use varnish)
         %-40soptional\t\t\tVarnish port. Default: %s
         %-40soptional\t\t\tProxy host (Empty is not forward proxy)
         %-40soptional\t\t\tProxy port
         %-40soptional\t\t\tServer name. Default: %s
         -h, --help%-38s\t\t\tDisplay this help message
-    " "${OPTION_FOLDER}" "${ROOT_FOLDER}" "${OPTION_HTTPS}" "${BOOL_TRUE}" "${BOOL_FALSE}" "${HTTPS}" "${OPTION_PROJECT_TYPE}" "${PROJECT_TYPE_PHP}" "${PROJECT_TYPE_MAGENTO}" "${PROJECT_TYPE_NODE}" "${OPTION_VARNISH}" "${OPTION_VARNISH_PORT}" "${VARNISH_PORT}" "${OPTION_PROXY}" "${OPTION_PROXY_PORT}" "${OPTION_SERVER_NAME}" "${SERVER_NAME_DEFAULT}" " "
+    " "${OPTION_FOLDER}" "${ROOT_FOLDER}" \
+    "${OPTION_HTTPS}" "${BOOL_TRUE}" "${BOOL_FALSE}" "${HTTPS}" \
+    "${OPTION_PROJECT_TYPE}" "${PROJECT_TYPE_STATIC}" "${PROJECT_TYPE_PHP}"  "${PROJECT_TYPE_MAGENTO}" "${PROJECT_TYPE_NODE}" \
+    "${OPTION_VARNISH}" \
+    "${OPTION_VARNISH_PORT}"  "${VARNISH_PORT}" \
+    "${OPTION_PROXY}" \
+    "${OPTION_PROXY_PORT}" \
+    "${OPTION_SERVER_NAME}" "${SERVER_NAME_DEFAULT}" \
+    " "
 }
 
 function checkProjectType()
 {
-    if [ "$1" -eq $PROJECT_TYPE_PHP ] || [ "$1" -eq $PROJECT_TYPE_MAGENTO ] || [ "$1" -eq $PROJECT_TYPE_NODE ]; then
+    if [ "$1" -eq $PROJECT_TYPE_STATIC ] \
+    || [ "$1" -eq $PROJECT_TYPE_PHP ] \
+     || [ "$1" -eq $PROJECT_TYPE_MAGENTO ] \
+      || [ "$1" -eq $PROJECT_TYPE_NODE ]; then
         return
     else
         msgError "Project type is invalid value.\n" && help && exit
@@ -242,35 +329,47 @@ function mapVariable()
     esac
 }
 
+##
+### Generate auto switch to https config
+##
 function autoHttps() {
-    echo "${AUTO_HTTPS_SERVER_TEMPLATE}" > /etc/nginx/conf.d/auto-https.conf
+    printf "\n${AUTO_HTTPS_SERVER_TEMPLATE}\n" "$SERVER_NAME" "$SERVER_NAME" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
 }
 
+
+##
+### Generate PHP backend config
+##
 function phpBackend() {
-    echo "${PHP_BE_TEMPLATE}" > /etc/nginx/conf.d/php.conf
+    echo "${PHP_BE_TEMPLATE}" > "$FILE_PHP_BE"
 }
 
 ##
-### S1  template
-### S2  Include
+### $1  template
+### $2  Include
 ##
 generatePhpDefault() {
     port=80
     ssl=""
     template="$1"
 
+    echo "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+
     if [ "$HTTPS" = "true" ]; then
         port="${SSL_PORT}"
-        ssl="${SSL_TEMPLATE}"
+        ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
     fi
 
     if [ -z "$template" ]; then
         template="${PHP_SERVER_TEMPLATE}"
     fi
 
-    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" "$2" > "/etc/nginx/conf.d/${SERVER_NAME}.conf"
+    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" "$2" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
 }
 
+##
+### $1  template
+##
 function generatePhpVarnishDefault() {
     template="$1"
     varnish="${VARNISH}:${VARNISH_PORT}"
@@ -283,10 +382,12 @@ function generatePhpVarnishDefault() {
         varnish="http://${varnish}"
     fi
 
-    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" > "/etc/nginx/conf.d/${SERVER_NAME}.conf"
+    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" "$2" > "${CONFIG_PATH}${SERVER_NAME}.conf"
 
     if [ "$HTTPS" = "$BOOL_TRUE" ]; then
-        printf "${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${SSL_TEMPLATE}" "${varnish}" "${SSL_PROXY}" >> "/etc/nginx/conf.d/${SERVER_NAME}.conf"
+        ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
+
+        printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${varnish}" "${SSL_PROXY}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
     fi
 }
 
@@ -294,8 +395,40 @@ function generatePhpServer() {
    generatePhpDefault "${PHP_SERVER_TEMPLATE}"
 }
 
+function generateHtmlServer() {
+    port=80
+    ssl=""
+    template="${HTML_SERVER_TEMPLATE}"
+
+    echo "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+
+    if [ "$HTTPS" = "true" ]; then
+        port="${SSL_PORT}"
+        ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
+    fi
+
+    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
+}
+
 function generatePhpVarnishServer() {
     generatePhpVarnishDefault "${PHP_SERVER_TEMPLATE}"
+}
+
+function generateHtmlVarnishServer() {
+    template="${HTML_SERVER_TEMPLATE}"
+    varnish="${VARNISH}:${VARNISH_PORT}"
+
+    if [[ "$varnish" != "http"* ]]; then
+        varnish="http://${varnish}"
+    fi
+
+    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+
+    if [ "$HTTPS" = "$BOOL_TRUE" ]; then
+        ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
+
+        printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${varnish}" "${SSL_PROXY}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
+    fi
 }
 
 function generateMagentoServer() {
@@ -303,7 +436,7 @@ function generateMagentoServer() {
 }
 
 function generateMagentoVarnishServer() {
-    generatePhpVarnishDefault "${MAGENTO_SERVER_TEMPLATE}"
+    generatePhpVarnishDefault "${MAGENTO_SERVER_TEMPLATE}" "${MAGENTO_INCLUDE}"
 }
 
 function generateForwardServer() {
@@ -312,9 +445,11 @@ function generateForwardServer() {
     sslProxy=""
     proxy="${PROXY}:${PROXY_PORT}"
 
-    if [ "$HTTPS" = "true" ]; then
+    echo "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+
+    if [ "$HTTPS" = "$BOOL_TRUE" ]; then
         port="${SSL_PORT}"
-        ssl="${SSL_TEMPLATE}"
+        ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
         sslProxy="${SSL_PROXY}"
     fi
 
@@ -322,7 +457,7 @@ function generateForwardServer() {
         proxy="http://${proxy}"
     fi
 
-    printf "${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${proxy}" "${sslProxy}" > "/etc/nginx/conf.d/${SERVER_NAME}.conf"
+    printf "${FORWARD_SERVER_TEMPLATE}" "${port}" "${SERVER_NAME}" "${ssl}" "${proxy}" "${sslProxy}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
 }
 
 for item in "$@"
@@ -342,12 +477,9 @@ if [ -z "$PROJECT_TYPE" ]; then
     msgError "Project type is required.\n" && help && exit
 fi
 
-if [ "$HTTPS" = "$BOOL_TRUE" ]; then
-    create-ssl-key
-fi
-
 case $PROJECT_TYPE in
     "${PROJECT_TYPE_PHP}")
+        phpBackend
         if [ -z "$VARNISH" ]; then
             generatePhpServer
         else
@@ -355,8 +487,9 @@ case $PROJECT_TYPE in
         fi
         ;;
     "${PROJECT_TYPE_MAGENTO}")
+        phpBackend
         if [ -f "${FOLDER}/nginx.conf.sample" ]; then
-            MAGENTO_INCLUDE="${FOLDER}/nginx.conf.sample"
+            MAGENTO_INCLUDE="include ${FOLDER}/nginx.conf.sample;"
         fi
         if [ -z "$VARNISH" ]; then
             generateMagentoServer
@@ -367,8 +500,20 @@ case $PROJECT_TYPE in
     "${PROJECT_TYPE_NODE}")
         generateForwardServer
         ;;
+    "${PROJECT_TYPE_STATIC}")
+        if [ -z "$VARNISH" ]; then
+            generateHtmlServer
+        else
+            generateHtmlVarnishServer
+        fi
+        ;;
     *)
         msgError "Project type is invalid value.\n" && help && exit
 esac
 
+if [ "$HTTPS" = "$BOOL_TRUE" ]; then
+    autoHttps
+    create-ssl-key "$SERVER_NAME"
+fi
 
+msgSuccess "Create V-Host \`${SERVER_NAME}\` successful!"

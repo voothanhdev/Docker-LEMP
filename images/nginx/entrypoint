@@ -1,7 +1,14 @@
 #!/bin/bash
 set -e
 
-vhost "--folder=${ROOT_FOLDER}" "--server-name=${SERVER_NAME}" "--https=${HTTPS}" "--varnish-host=${VARNISH}" "--project-type=${PROJECT_TYPE}" "--varnish-port=${VARNISH_PORT}" "--proxy=${PROXY}" "--proxy-port=${PROXY_PORT}"
+vhost "--folder=${ROOT_FOLDER}" \
+    "--server-name=${SERVER_NAME}" \
+    "--https=${HTTPS}" \
+    "--varnish-host=${VARNISH}" \
+    "--project-type=${PROJECT_TYPE}" \
+    "--varnish-port=${VARNISH_PORT}" \
+    "--proxy-host=${PROXY}" \
+    "--proxy-port=${PROXY_PORT}"
 
 # Update nginx config
 if [[ "${NGINX_CONFIG}" != '' ]]; then
@@ -9,6 +16,12 @@ if [[ "${NGINX_CONFIG}" != '' ]]; then
     nginx-config "${NGINX_CONFIG[@]}"
 fi
 
+for command in "$@"
+do
+    command=${command//' \ '/' '}
+    $command
+done
+
 nginx -t
 
-exec "$@"
+nginx -g "daemon off;"

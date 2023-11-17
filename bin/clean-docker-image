@@ -6,7 +6,7 @@ fi
 images=$(docker images -f "dangling=true" -q)
 
 if [ -n "$images" ]; then
-    docker rmi -f "$images"
+    docker rmi -f "$(docker images -f "dangling=true" -q)"
 else
     printf "No dangling images found!"
 fi

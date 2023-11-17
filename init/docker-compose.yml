@@ -14,8 +14,12 @@ services:
         ports:
             - "${HTTPS_PORT}:${HTTPS_PORT}"
         environment:
-            - "IS_MAGENTO=${IS_MAGENTO_PROJECT}"
+            - "PROJECT_TYPE=${PROJECT_TYPE}"
+            - "HTTPS=${HTTPS}"
             - "VARNISH=${VARNISH_SERVICE}"
+            - "VARNISH_PORT=${VARNISH_PORT}"
+            - "PROXY=${PROXY}"
+            - "PROXY_PORT=${PROXY_PORT}"
             - "NGINX_CONFIG=${NGINX_CONFIG}"
         volumes: &app_volume
             - ./src:/project:delegated
