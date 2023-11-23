@@ -34,8 +34,6 @@ WORKDIR ${ROOT_FOLDER}
 
 ENTRYPOINT ["/entrypoint"]
 
-VOLUME /etc/nginx/conf.d
-
 EXPOSE 443 80
 
 USER www

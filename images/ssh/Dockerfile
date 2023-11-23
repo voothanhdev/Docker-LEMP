@@ -2,7 +2,6 @@ FROM alpine
 
 MAINTAINER VooThanh DEV <voothanhphong@gmail.com>
 
-COPY ./bin/* /usr/local/bin/
 COPY ./entrypoint /
 
 RUN apk update \
@@ -13,7 +12,6 @@ RUN apk update \
     && chown -R www:www-data /home/www/.ssh /home/www/.ssh/pems /home/www/bin \
     && chmod +x /entrypoint \
     && echo "export PATH=\"/home/www/bin:\$PATH\"" >> /home/www/.profile \
-    && chmod +x /usr/local/bin/* \
     && rm -rf /tmp/* /var/cache/* /var/lib/apk/* /var/log/* /var/tmp/*
 
 USER www

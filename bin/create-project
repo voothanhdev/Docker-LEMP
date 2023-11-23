@@ -11,7 +11,7 @@ source "${helper}/spin"
 source "${init}/.env"
 
 OPTION_FOLDER="--folder"
-OPTION_MAGENTO="--is-magento"
+OPTION_TYPE="--type"
 OPTION_PHP="--php"
 OPTION_DB="--database"
 OPTION_ELASTICSEARCH="--elasticsearch"
@@ -40,8 +40,8 @@ function help()
         create-project <option>
 
     Options:
+        %-40srequired\t\t\tProject Type
         %-40soptional\t\t\tProject path. Default: current
-        %-40soptional\t\t\tIs Magento Project. Default: %s
         %-40soptional\t\t\tPHP image. Default: %s
         %-40soptional\t\t\tDatabase image. Default: %s
         %-40soptional\t\t\tElasticsearch image. Default: %s
@@ -54,7 +54,20 @@ function help()
         %-40soptional\t\t\tDatabase file path.
         %-40soptional\t\t\tEnter input step by step.
         -h, --help%-38s\t\t\tDisplay this help message
-    " "${OPTION_FOLDER}=[value]" "${OPTION_MAGENTO}=[true|false]" "${IS_MAGENTO_PROJECT}" "${OPTION_PHP}=[value]" "${PHP_IMAGE}" "${OPTION_DB}=[value]" "${DB_IMAGE}" "${OPTION_ELASTICSEARCH}=[value]" "${ELASTICSEARCH_IMAGE}" "${OPTION_REDIS}=[value]" "${REDIS_IMAGE}" "${OPTION_RABITMQ}=[value]" "${RABITMQ_IMAGE}" "${OPTION_GIT}=[value]" "${OPTION_GIT_BRANCH}=[value]" "${OPTION_COMPOSER}=[value]" "${OPTION_COMPOSER_AUTH}=[value]" "${OPTION_DB_FILE}=[value]"  "${OPTION_ENTER_INPUT}" " "
+    " "${OPTION_TYPE}=[value]" \
+    "${OPTION_FOLDER}=[value]" \
+    "${OPTION_PHP}=[value]" "${PHP_IMAGE}" \
+    "${OPTION_DB}=[value]" "${DB_IMAGE}" \
+    "${OPTION_ELASTICSEARCH}=[value]" "${ELASTICSEARCH_IMAGE}" \
+    "${OPTION_REDIS}=[value]" "${REDIS_IMAGE}" \
+    "${OPTION_RABITMQ}=[value]" "${RABITMQ_IMAGE}" \
+    "${OPTION_GIT}=[value]" \
+    "${OPTION_GIT_BRANCH}=[value]" \
+    "${OPTION_COMPOSER}=[value]" \
+    "${OPTION_COMPOSER_AUTH}=[value]" \
+    "${OPTION_DB_FILE}=[value]"  \
+    "${OPTION_ENTER_INPUT}" \
+    " "
 }
 
 
@@ -71,12 +84,13 @@ function msgCommand() {
 }
 
 function input() {
+    read -p $"$(msgInfo "Type: ")" -e -r PROJECT_TYPE
+
     ## Enter root folder
     read -p $"$(msgInfo "Enter Project Path: ")" -e -i "${FOLDER}" -r FOLDER
     mkdir -p "${FOLDER}"
 
     ## Docker compose config
-    read -p $"$(msgInfo "Is Magento Project: ")" -e -i "${IS_MAGENTO_PROJECT}" -r IS_MAGENTO_PROJECT
     read -p $"$(msgInfo "PHP Image: ")" -e -i "${PHP_IMAGE}" -r PHP_IMAGE
     read -p $"$(msgInfo "Composer Version: ")" -e -i "${COMPOSER}" -r COMPOSER
     read -p $"$(msgInfo "Mysql Image: ")" -e -i "${DB_IMAGE}" -r DB_IMAGE
@@ -133,8 +147,8 @@ function mapVariable()
         "${OPTION_FOLDER}")
             FOLDER="$value"
             ;;
-        "${OPTION_MAGENTO}")
-            IS_MAGENTO_PROJECT="$value"
+        "${OPTION_TYPE}")
+            PROJECT_TYPE="$value"
             ;;
         "${OPTION_PHP}")
             PHP_IMAGE="$value"

@@ -40,12 +40,12 @@ HTTPS=true
 PROXY=
 PROXY_PORT=
 MAGENTO_INCLUDE="include /etc/nginx/include/magento.conf;"
+PHP_SERVER="php-server"
 
 ########################################################################################################################
 ### FILE PATHS #########################################################################################################
 ########################################################################################################################
 CONFIG_PATH=/etc/nginx/conf.d/
-FILE_AUTO_HTTPS="${CONFIG_PATH}auto-https.conf"
 FILE_PHP_BE="${CONFIG_PATH}php.conf"
 
 
@@ -101,7 +101,7 @@ PHP_LOCATION_TEMPLATE="
     location ~ \.php\$ {
         try_files \$uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)\$;
-        fastcgi_pass php-server;
+        fastcgi_pass ${PHP_SERVER};
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
@@ -114,7 +114,7 @@ HT_LOCATION_TEMPLATE="
     }
 "
 PHP_BE_TEMPLATE="
-upstream php-server {
+upstream ${PHP_SERVER} {
     server unix:/sock/docker.sock;
 }
 "
@@ -490,6 +490,7 @@ case $PROJECT_TYPE in
         phpBackend
         if [ -f "${FOLDER}/nginx.conf.sample" ]; then
             MAGENTO_INCLUDE="include ${FOLDER}/nginx.conf.sample;"
+            sed -i "s/fastcgi_pass.*;/fastcgi_pass ${PHP_SERVER};/g" "${FOLDER}/nginx.conf.sample"
         fi
         if [ -z "$VARNISH" ]; then
             generateMagentoServer
