@@ -1,0 +1,65 @@
+#!/bin/bash
+SERVICES=""
+COMMAND=""
+
+function help()
+{
+    printf "Yarn run command
+        yarn [<option>]
+
+    Options:
+        %-40soptional\t\t\tService name\t [Multiple] [Default: node]
+        %-40soptional\t\t\tCommand detail. [Required]
+        -h, --help%-38s\t\t\tDisplay this help message
+    " "-s" \
+    "-c" \
+    ""
+}
+
+
+function mapVariable()
+{
+    local option
+    local value
+
+    option=$(echo "$1" | sed 's/=.*$//g')
+    value=$(echo "$1" | sed 's/^.*="\?\|"\?$//g')
+
+    case $option in
+        "-s")
+            SERVICES="${SERVICES} ${value}"
+            ;;
+        "-c")
+            COMMAND="$value"
+            ;;
+        "--help")
+            ;;
+        "-h")
+            ;;
+        *)
+            msgError "Option \`${option}\` doesn't exists\n" && help && exit
+            ;;
+    esac
+}
+
+if [ "$1" == "--help" ] || [ "$1" == "-h" ];then
+     help && exit
+fi
+
+for item in "$@"
+do
+    mapVariable "$item"
+done
+
+if [ -z "${SERVICES}" ]; then
+  SERVICES="node"
+fi
+
+mapfile -t SERVICES < <(echo "${SERVICES}" | tr ' ' "\n")
+
+for service in "${SERVICES[@]}"
+do
+  if [ -n "${service}" ]; then
+    doco exec ${service} yarn ${COMMAND}
+  fi
+done
