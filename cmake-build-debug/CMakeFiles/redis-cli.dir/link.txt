@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/redis-cli.dir/command/build/redis-cli.cpp.o" -o /Projects/LEMP/cbin/redis-cli 

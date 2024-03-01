@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/create-project.dir/command/build/create-project.cpp.o" -o /Projects/LEMP/cbin/create-project 

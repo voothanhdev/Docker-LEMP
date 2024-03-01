@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/php-disable.dir/command/build/php-disable.cpp.o" -o /Projects/LEMP/cbin/php-disable 

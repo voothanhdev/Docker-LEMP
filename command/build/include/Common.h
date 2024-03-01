@@ -7,6 +7,7 @@
 
 #include "vector"
 #include "string"
+#include "message.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <limits.h>
@@ -134,6 +135,17 @@ string getOptionInput(string title, bool isRequired, string defaultValue, vector
     }
 
     return result;
+}
+
+bool fileExists(string path)
+{
+    if (FILE *file = fopen(path.c_str(), "r")) {
+        fclose(file);
+
+        return true;
+    } else {
+        return false;
+    }
 }
 
 #endif //LEMP_BUILDARGS_H

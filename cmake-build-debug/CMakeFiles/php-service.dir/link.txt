@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/php-service.dir/command/build/php-service.cpp.o" -o /Projects/LEMP/cbin/php-service 

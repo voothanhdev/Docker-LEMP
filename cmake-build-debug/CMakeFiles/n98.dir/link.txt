@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/n98.dir/command/build/n98.cpp.o -o /Projects/LEMP/cbin/n98 

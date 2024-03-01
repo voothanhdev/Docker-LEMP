@@ -21,79 +21,72 @@ class CommandOption
            this->names = names;
         }
 
-        CommandOption* setDescription(string value)
+        CommandOption* setDescription(string newData)
         {
-            this->description = value;
+            this->description = newData;
 
             return this;
         }
 
-        CommandOption* setDefaultValue(string value)
+        CommandOption* setDefaultValue(string newData)
         {
-            this->defaultValue = value;
+            this->defaultValue = newData;
 
             return this;
         }
 
-        CommandOption* setExampleValue(string value)
+        CommandOption* setExampleValue(string newData)
         {
-            this->exampleValue = value;
+            this->exampleValue = newData;
 
             return this;
         }
 
-        CommandOption* setEnvKey(string value)
+        CommandOption* setValueKey(string newData)
         {
-            this->envKey = value;
+            this->valueKey = newData;
 
             return this;
         }
 
-        CommandOption* setInputLabel(string value)
+        CommandOption* setInputLabel(string newData)
         {
-            this->inputLabel = value;
+            this->inputLabel = newData;
 
             return this;
         }
 
-        CommandOption* setValueOptions(vector<string> value)
+        CommandOption* setValueOptions(vector<string> newData)
         {
-            this->valueOptions = value;
+            this->valueOptions = newData;
 
             return this;
         }
 
-        CommandOption* setRequired(bool value)
+        CommandOption* setRequired(bool newData)
         {
-            this->required = value;
+            this->required = newData;
 
             return this;
         }
 
-        CommandOption* setMultiple(bool value)
+        CommandOption* setMultiple(bool newData)
         {
-            this->multiple = value;
+            this->multiple = newData;
 
             return this;
         }
 
-        CommandOption* setNonValue(bool value)
+        CommandOption* setNonValue(bool newData)
         {
-            this->nonValue = value;
+            this->nonValue = newData;
 
             return this;
         }
 
-        CommandOption* setValue(string* value)
+        CommandOption* setValue(string* newData)
         {
-            this->value = value;
-
-            return this;
-        }
-
-        CommandOption* setValue(string value)
-        {
-            *this->value = value;
+            this->value = newData;
 
             return this;
         }
@@ -118,9 +111,9 @@ class CommandOption
             return this->exampleValue;
         }
 
-        string getEnvKey()
+        string getValueKey()
         {
-            return this->envKey;
+            return this->valueKey.empty() ? this->getName() : this->valueKey;
         }
 
         string getInputLabel()
@@ -208,7 +201,7 @@ class CommandOption
         string description;
         string defaultValue;
         string exampleValue;
-        string envKey;
+        string valueKey;
         string inputLabel;
         string* value;
         vector<string> valueOptions;

@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/init-magento-env.dir/command/build/init-magento-env.cpp.o" -o /Projects/LEMP/cbin/init-magento-env 

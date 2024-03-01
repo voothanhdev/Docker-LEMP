@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/mysql-import.dir/command/build/mysql-import.cpp.o" -o /Projects/LEMP/cbin/mysql-import 

@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/pconfig.dir/command/build/pconfig.cpp.o -o /Projects/LEMP/cbin/pconfig 

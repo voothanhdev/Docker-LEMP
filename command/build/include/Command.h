@@ -10,6 +10,7 @@
 #include "iostream"
 #include "vector"
 #include "iomanip"
+#include "map"
 
 #include "CommandOption.h"
 #include "message.h"
@@ -19,43 +20,51 @@ using namespace std;
 
 class Command
 {
-    private:
+    public:
+        const string OPTION_HELP = "--help";
+        const string OPTION_HELP_SHORT = "-h";
+
+        Command() {};
+
+        void setOptions(vector<CommandOption*> value);
+        void addOption(CommandOption* value);
+        void addOption(vector<CommandOption*> value);
+        void showHelp();
+        void mapValues(int argc, char *argv[]);
+        void showError(const string& message);
+        void showError(const string& message, bool isExit);
+
+        vector<CommandOption*> getOptions();
+
+        virtual void init();
+        virtual void init(vector<string> arguments);
+        virtual void init(int argc, char **argv);
+        virtual void exec() {}
+    protected:
         const int DESC_MAX_LENGTH = 60;
 
         vector<CommandOption *> options;
         string                  code;
         string                  describe;
+        map<string, string>     optionDefaultValues;
+        map<string, string>     values;
+
+        virtual void initArguments(vector<string> arguments);
+        virtual void setOptionValue(const string &key, string value);
+        virtual void setOptionValue(const string &key, string value, bool isExit);
+        virtual void setOptionValuesByDefault();
+        virtual void setOptionValuesByDefault(bool isExit);
+        virtual void validateRequired();
+        virtual void initCommand() {}
+        virtual void initOptions() {}
 
         int getKeyMaxLength();
-
         int getDescribeMaxLength();
-
-        static string generateOptionValues(CommandOption* option);
-        Command(string code, string describe);
-    public:
-        const string OPTION_HELP = "--help";
-        const string OPTION_HELP_SHORT = "-h";
-
-        void setOptions(vector<CommandOption*> value);
-        void addOption(CommandOption* value);
-        void addOption(vector<CommandOption*> value);
-        vector<CommandOption*> getOptions();
-        void print();
-        void mapValues(int argc, char *argv[]);
-        void showError(const string& message);
-        static Command getInstance(string code, string describe);
+        CommandOption *getOption(const string &key);
+        string getValue(const string &key);
+        string generateOptionValues(CommandOption *option);
+        string inputOption(CommandOption *option);
 };
-
-Command::Command(string code, string describe)
-{
-    this->code = std::move(code);
-    this->describe = std::move(describe);
-}
-
-Command Command::getInstance(string code, string describe)
-{
-    return *new Command(code, describe);
-}
 
 void Command::setOptions(vector<CommandOption*> value)
 {
@@ -77,7 +86,7 @@ vector<CommandOption*> Command::getOptions()
     return this->options;
 }
 
-void Command::print()
+void Command::showHelp()
 {
     int maxKey  = this->getKeyMaxLength();
     int maxDesc = this->getDescribeMaxLength();
@@ -126,7 +135,7 @@ void Command::print()
         descriptionSplit.erase(descriptionSplit.begin());
 
         if (!option->getValueOptions().empty()) {
-            showBold(" [" + Command::generateOptionValues(option) + "]");
+            showBold(" [" + this->generateOptionValues(option) + "]");
         }
 
         if (!option->getExampleValue().empty()) {
@@ -217,7 +226,7 @@ void Command::mapValues(int argc, char **argv)
         }
 
         if (key == OPTION_HELP || key == OPTION_HELP_SHORT) {
-            this->print();
+            this->showHelp();
             exit(0);
         }
 
@@ -249,10 +258,172 @@ void Command::mapValues(int argc, char **argv)
 
 void Command::showError(const string& message)
 {
+    this->showError(message, true);
+}
+
+void Command::showError(const string& message, bool isExit)
+{
     showRed("Error: " + message, true);
     cout << endl;
-    this->print();
-    exit(0);
+
+    if (isExit) {
+        this->showHelp();
+        exit(0);
+    }
+}
+
+void Command::validateRequired()
+{
+    for (CommandOption *option: this->getOptions()) {
+        if (!option->isRequired()) {
+            continue;
+        }
+
+        if (this->values.find(option->getName()) == end(this->values)) {
+            this->showError("Option `" + option->getName() + "` is required.");
+        }
+    }
+}
+
+void Command::setOptionValue(const string &key, string value)
+{
+    this->setOptionValue(key, value, true);
+}
+
+void Command::setOptionValue(const string &key, string value, bool isExit)
+{
+    if (key == OPTION_HELP || key == OPTION_HELP_SHORT) {
+        this->showHelp();
+    }
+
+    for (CommandOption *option: this->getOptions()) {
+        if (!option->checkKey(key)) {
+            continue;
+        }
+
+        vector<string> validValues = option->getValueOptions();
+
+        if (value.empty()) {
+            return;
+        }
+
+        if (!validValues.empty() && find(validValues.begin(), validValues.end(), value) == validValues.end()) {
+            this->showError("Option `" + key + "` invalid value.", isExit);
+        }
+
+        this->values[option->getValueKey()] = value;
+        return;
+    }
+
+    this->showError("Option `" + key + "` doesn't exists.", isExit);
+}
+
+void Command::setOptionValuesByDefault()
+{
+    this->setOptionValuesByDefault(true);
+}
+
+void Command::setOptionValuesByDefault(bool isExit)
+{
+    for (CommandOption *option: this->getOptions()) {
+        if (!option->getDefaultValue().empty() && this->getValue(option->getValueKey()).empty()) {
+            this->values[option->getValueKey()] = option->getDefaultValue();
+        }
+    }
+}
+
+CommandOption *Command::getOption(const string &key)
+{
+    for (CommandOption *option: this->getOptions()) {
+        if (option->getName() == key) {
+            return option;
+        }
+    }
+
+    return NULL;
+}
+
+string Command::getValue(const string &key)
+{
+    if (this->values.find(key) != end(this->values)) {
+        return this->values.find(key)->second;
+    }
+
+    return "";
+}
+
+void Command::initArguments(vector<std::string> arguments)
+{
+    for (string arg: arguments) {
+        string key, value;
+        string::size_type splitPos = arg.find('=');
+
+        if (splitPos == string::npos) {
+            key = arg;
+        } else {
+            key = arg.substr(0, splitPos);
+            value = arg.substr(splitPos + 1);
+        }
+
+        this->setOptionValue(key, value);
+    }
+}
+
+void Command::init()
+{
+    this->initCommand();
+    this->initOptions();
+}
+
+void Command::init(vector<std::string> arguments)
+{
+    this->init();
+    this->initArguments(arguments);
+}
+
+void Command::init(int argc, char **argv)
+{
+    this->init();
+    this->mapValues(argc, argv);
+}
+
+string Command::inputOption(CommandOption *option)
+{
+    startInput:
+    showBlue(option->getInputLabel().empty() ? option->getDescription() : option->getInputLabel(), true);
+
+    if (!option->getValueOptions().empty()) {
+        cout << " ";
+        showInputOptions(option->getValueOptions(), option->getDefaultValue());
+    }
+
+    cout << " : ";
+
+    string result;
+
+    getline(cin, result);
+
+    if (option->isRequired() && result.empty()) {
+        showRed("This option is required.", true);
+        cout << endl;
+        goto startInput;
+    }
+
+    if (result.empty()) {
+        return option->getDefaultValue();
+    }
+
+    if (!option->getValueOptions().empty()
+        && find(
+            option->getValueOptions().begin(), option->getValueOptions().end(), result
+        ) == option->getValueOptions().end()
+    ) {
+        showRed("Invalid value.");
+        cout << endl;
+        goto startInput;
+    }
+
+    return result;
 }
 
 #endif //LEMP_COMMAND_H

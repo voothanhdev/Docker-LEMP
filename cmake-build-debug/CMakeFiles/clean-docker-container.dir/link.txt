@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/clean-docker-container.dir/command/build/clean-docker-container.cpp.o" -o /Projects/LEMP/cbin/clean-docker-container 

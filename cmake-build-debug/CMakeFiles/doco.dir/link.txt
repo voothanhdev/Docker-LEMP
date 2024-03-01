@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/doco.dir/command/build/doco.cpp.o -o /Projects/LEMP/cbin/doco 

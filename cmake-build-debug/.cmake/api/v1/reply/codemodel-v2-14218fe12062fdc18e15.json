@@ -1,0 +1,240 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.27"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "LEMP",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "clean-docker-container::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-clean-docker-container-Debug-4ab488ed428969194934.json",
+					"name" : "clean-docker-container",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "clean-docker-image::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-clean-docker-image-Debug-aa0047e33ff6251b340e.json",
+					"name" : "clean-docker-image",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "clean-docker-volume::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-clean-docker-volume-Debug-b52430a1b9b538e912c2.json",
+					"name" : "clean-docker-volume",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "composer::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-composer-Debug-3c13f657bdd675bb45d3.json",
+					"name" : "composer",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "create-project::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-create-project-Debug-aa4475517104379cd79c.json",
+					"name" : "create-project",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "doco::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-doco-Debug-03c7b1e00b46f2eec33c.json",
+					"name" : "doco",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "init-doco::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-init-doco-Debug-d25bc1dba368ce6c3244.json",
+					"name" : "init-doco",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "init-magento-env::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-init-magento-env-Debug-a56be2c3aa679af04325.json",
+					"name" : "init-magento-env",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "magento::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-magento-Debug-d94d6a94a9a41985c435.json",
+					"name" : "magento",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "magento-patch::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-magento-patch-Debug-c03481043a2b5015ab46.json",
+					"name" : "magento-patch",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mysql-export::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mysql-export-Debug-91e110c9704440752f8e.json",
+					"name" : "mysql-export",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mysql-import::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mysql-import-Debug-005f654492a45c14a664.json",
+					"name" : "mysql-import",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "n98::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-n98-Debug-b45abe4e5d423556d3fa.json",
+					"name" : "n98",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pconfig::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pconfig-Debug-34b15c89fa1ee364f7dd.json",
+					"name" : "pconfig",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "permission::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-permission-Debug-31aa54ea5015a1f418ce.json",
+					"name" : "permission",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "php::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-php-Debug-eb21df9059491b7da2fc.json",
+					"name" : "php",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "php-disable::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-php-disable-Debug-d194a9460948a4aeaf80.json",
+					"name" : "php-disable",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "php-enable::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-php-enable-Debug-4c39515bff666ed84a1b.json",
+					"name" : "php-enable",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "php-service::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-php-service-Debug-c3bda96b0492b26cfc31.json",
+					"name" : "php-service",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ppool::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ppool-Debug-bcdda84e34585084f8d9.json",
+					"name" : "ppool",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "redis-cli::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-redis-cli-Debug-883517e3e11e08a05cb4.json",
+					"name" : "redis-cli",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/Projects/LEMP/cmake-build-debug",
+		"source" : "/Projects/LEMP"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

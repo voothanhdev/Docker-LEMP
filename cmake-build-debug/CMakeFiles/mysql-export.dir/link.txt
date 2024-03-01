@@ -1,0 +1,1 @@
+/usr/bin/c++ -g "CMakeFiles/mysql-export.dir/command/build/mysql-export.cpp.o" -o /Projects/LEMP/cbin/mysql-export 

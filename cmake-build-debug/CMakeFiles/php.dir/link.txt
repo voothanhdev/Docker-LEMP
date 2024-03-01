@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/php.dir/command/build/php.cpp.o -o /Projects/LEMP/cbin/php 

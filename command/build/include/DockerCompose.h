@@ -178,78 +178,123 @@ string DockerCompose::getDefaultValue(const string &key)
 map<string, CommandOption *> DockerCompose::getHelpOptions()
 {
     if (this->helpOptions.empty()) {
-        this->helpOptions[OPTION_INPUT] = (new CommandOption({OPTION_INPUT, "-i"}))->setDescription(
-            "Enter input step by step.")->setNonValue(true)->setDefaultValue("true");
+        this->helpOptions[OPTION_INPUT] = (new CommandOption({OPTION_INPUT, "-i"}))
+                ->setDescription("Enter input step by step.")
+                ->setNonValue(true)
+                ->setDefaultValue("true");
 
-        this->helpOptions[ENV_TYPE] = (new CommandOption({OPTION_TYPE, "-t"}))->setEnvKey(ENV_TYPE)->setDescription(
-            "Project Type.")->setInputLabel("Project Type")->setRequired(true)->setValueOptions(PROJECT_TYPE_OPTIONS);
+        this->helpOptions[ENV_TYPE] = (new CommandOption({OPTION_TYPE, "-t"}))
+                ->setValueKey(ENV_TYPE)
+                ->setDescription("Project Type.")
+                ->setInputLabel("Project Type")
+                ->setRequired(true)
+                ->setValueOptions(PROJECT_TYPE_OPTIONS);
 
-        this->helpOptions[ENV_PATH] = (new CommandOption({OPTION_PATH, "-p"}))->setEnvKey(ENV_PATH)->setDescription(
-            "Root Project Path.")->setInputLabel("Root Project Path")->setDefaultValue("CURRENT FOLDER");
+        this->helpOptions[ENV_PATH] = (new CommandOption({OPTION_PATH, "-p"}))
+                ->setValueKey(ENV_PATH)
+                ->setDescription("Root Project Path.")
+                ->setInputLabel("Root Project Path")
+                ->setDefaultValue("CURRENT FOLDER");
 
-        this->helpOptions[ENV_SERVER_NAME] = (new CommandOption({OPTION_SERVER_NAME}))->setEnvKey(
-            ENV_SERVER_NAME)->setDescription("vHost Server Name.")->setInputLabel("vHost Server Name")->setDefaultValue(
-            this->getDefaultValue(ENV_SERVER_NAME));
+        this->helpOptions[ENV_SERVER_NAME] = (new CommandOption({OPTION_SERVER_NAME}))
+                ->setValueKey(ENV_SERVER_NAME)
+                ->setDescription("vHost Server Name.")
+                ->setInputLabel("vHost Server Name")
+                ->setDefaultValue(this->getDefaultValue(ENV_SERVER_NAME));
 
-        this->helpOptions[ENV_HTTPS] = (new CommandOption({OPTION_HTTPS}))->setEnvKey(ENV_HTTPS)->setDescription(
-            "Use HTTPS.")->setInputLabel("Use HTTPS")->setValueOptions(YES_NO_OPTION)->setDefaultValue(
-            YES_NO_NO)->setNonValue(true);
+        this->helpOptions[ENV_HTTPS] = (new CommandOption({OPTION_HTTPS}))
+                ->setValueKey(ENV_HTTPS)
+                ->setDescription("Use HTTPS.")
+                ->setInputLabel("Use HTTPS")
+                ->setValueOptions(YES_NO_OPTION)
+                ->setDefaultValue(YES_NO_NO)
+                ->setNonValue(true);
 
-        this->helpOptions[ENV_SSH] = (new CommandOption({OPTION_SSH}))->setEnvKey(ENV_SSH)->setDescription(
-            "Use SSH Tunnel.")->setInputLabel("Use SSH Tunnel: ")->setValueOptions(YES_NO_OPTION)->setDefaultValue(
-            YES_NO_NO)->setNonValue(true);
+        this->helpOptions[ENV_SSH] = (new CommandOption({OPTION_SSH}))
+                ->setValueKey(ENV_SSH)
+                ->setDescription("Use SSH Tunnel.")
+                ->setInputLabel("Use SSH Tunnel: ")
+                ->setValueOptions(YES_NO_OPTION)
+                ->setDefaultValue(YES_NO_NO)
+                ->setNonValue(true);
 
-        this->helpOptions[ENV_PROXY] = (new CommandOption({OPTION_PROXY}))->setEnvKey(ENV_PROXY)->setDescription(
-            "Direct Proxy. Use for `forward` project.")->setInputLabel("Direct Proxy")->setDefaultValue(
-            this->getDefaultValue(ENV_PROXY));
+        this->helpOptions[ENV_PROXY] = (new CommandOption({OPTION_PROXY}))
+                ->setValueKey(ENV_PROXY)
+                ->setDescription("Direct Proxy. Use for `forward` project.")
+                ->setInputLabel("Direct Proxy")
+                ->setDefaultValue(this->getDefaultValue(ENV_PROXY));
 
-        this->helpOptions[ENV_PROXY_PORT] = (new CommandOption({OPTION_PROXY_PORT}))->setEnvKey(
-            ENV_PROXY_PORT)->setDescription("Proxy Port. Use for `forward` project")->setInputLabel(
-            "Proxy Port")->setDefaultValue(this->getDefaultValue(ENV_PROXY_PORT));
+        this->helpOptions[ENV_PROXY_PORT] = (new CommandOption({OPTION_PROXY_PORT}))
+                ->setValueKey(ENV_PROXY_PORT)
+                ->setDescription("Proxy Port. Use for `forward` project")
+                ->setInputLabel("Proxy Port")
+                ->setDefaultValue(this->getDefaultValue(ENV_PROXY_PORT));
 
-        this->helpOptions[ENV_VARNISH] = (new CommandOption({OPTION_VARNISH}))->setEnvKey(ENV_VARNISH)->setDescription(
-            "Varnish Image.")->setInputLabel("Varnish Image (Empty if not use): ")->setExampleValue(
-            this->getDefaultValue(ENV_VARNISH));
+        this->helpOptions[ENV_VARNISH] = (new CommandOption({OPTION_VARNISH}))
+                ->setValueKey(ENV_VARNISH)
+                ->setDescription("Varnish Image.")
+                ->setInputLabel("Varnish Image (Empty if not use): ")
+                ->setExampleValue(this->getDefaultValue(ENV_VARNISH));
 
-        this->helpOptions[ENV_VARNISH_PORT] = (new CommandOption({OPTION_VARNISH_PORT}))->setEnvKey(
-            ENV_VARNISH_PORT)->setDescription("Varnish Port.")->setInputLabel("Varnish Port")->setDefaultValue(
-            this->getDefaultValue(ENV_VARNISH_PORT));
+        this->helpOptions[ENV_VARNISH_PORT] = (new CommandOption({OPTION_VARNISH_PORT}))
+                ->setValueKey(ENV_VARNISH_PORT)
+                ->setDescription("Varnish Port.")
+                ->setInputLabel("Varnish Port")
+                ->setDefaultValue(this->getDefaultValue(ENV_VARNISH_PORT));
 
-        this->helpOptions[ENV_PHP] = (new CommandOption({OPTION_PHP}))->setEnvKey(ENV_PHP)->setDescription(
-            "PHP Image.")->setInputLabel("PHP Image (Empty if not use)")->setExampleValue(
-            this->getDefaultValue(ENV_PHP));
+        this->helpOptions[ENV_PHP] = (new CommandOption({OPTION_PHP}))
+                ->setValueKey(ENV_PHP)
+                ->setDescription("PHP Image.")
+                ->setInputLabel("PHP Image (Empty if not use)")
+                ->setExampleValue(this->getDefaultValue(ENV_PHP));
 
-        this->helpOptions[ENV_MAIL] = (new CommandOption({OPTION_MAIL}))->setEnvKey(ENV_MAIL)->setDescription(
-            "Mail Service Image.")->setInputLabel("Mail Service Image (Empty if not use)")->setExampleValue(
-            this->getDefaultValue(ENV_MAIL));
+        this->helpOptions[ENV_MAIL] = (new CommandOption({OPTION_MAIL}))
+                ->setValueKey(ENV_MAIL)
+                ->setDescription("Mail Service Image.")
+                ->setInputLabel("Mail Service Image (Empty if not use)")
+                ->setExampleValue(this->getDefaultValue(ENV_MAIL));
 
-        this->helpOptions[ENV_DB] = (new CommandOption({OPTION_DB, "-db"}))->setEnvKey(ENV_DB)->setDescription(
-            "Database Image.")->setInputLabel("Database Image (Empty if not use)")->setExampleValue(
-            this->getDefaultValue(ENV_DB));
+        this->helpOptions[ENV_DB] = (new CommandOption({OPTION_DB, "-db"}))
+                ->setValueKey(ENV_DB)
+                ->setDescription("Database Image.")
+                ->setInputLabel("Database Image (Empty if not use)")
+                ->setExampleValue(this->getDefaultValue(ENV_DB));
 
-        this->helpOptions[ENV_DB_NAME] = (new CommandOption({OPTION_DB_NAME, "-dbn"}))->setEnvKey(
-            ENV_DB_NAME)->setDescription("Database Name.")->setInputLabel("Database Name")->setDefaultValue(
-            this->getDefaultValue(ENV_DB_NAME));
+        this->helpOptions[ENV_DB_NAME] = (new CommandOption({OPTION_DB_NAME, "-dbn"}))
+                ->setValueKey(ENV_DB_NAME)
+                ->setDescription("Database Name.")
+                ->setInputLabel("Database Name")
+                ->setDefaultValue(this->getDefaultValue(ENV_DB_NAME));
 
-        this->helpOptions[ENV_DB_USER] = (new CommandOption({OPTION_DB_USER, "-dbu"}))->setEnvKey(
-            ENV_DB_USER)->setDescription("Database User.")->setInputLabel("Database User")->setDefaultValue(
-            this->getDefaultValue(ENV_DB_USER));
+        this->helpOptions[ENV_DB_USER] = (new CommandOption({OPTION_DB_USER, "-dbu"}))
+                ->setValueKey(ENV_DB_USER)
+                ->setDescription("Database User.")
+                ->setInputLabel("Database User")
+                ->setDefaultValue(this->getDefaultValue(ENV_DB_USER));
 
-        this->helpOptions[ENV_DB_PASS] = (new CommandOption({OPTION_DB_PASS, "-dbp"}))->setEnvKey(
-            ENV_DB_PASS)->setDescription("Database User Password.")->setInputLabel(
-            "Database User Password")->setDefaultValue(this->getDefaultValue(ENV_DB_PASS));
+        this->helpOptions[ENV_DB_PASS] = (new CommandOption({OPTION_DB_PASS, "-dbp"}))
+                ->setValueKey(ENV_DB_PASS)
+                ->setDescription("Database User Password.")
+                ->setInputLabel("Database User Password")
+                ->setDefaultValue(this->getDefaultValue(ENV_DB_PASS));
 
-        this->helpOptions[ENV_ELASTICSEARCH] = (new CommandOption({OPTION_ELASTICSEARCH, "-es"}))->setEnvKey(
-            ENV_ELASTICSEARCH)->setDescription("Elasticsearch Image.")->setInputLabel(
-            "Elasticsearch Image")->setExampleValue(this->getDefaultValue(ENV_ELASTICSEARCH));
+        this->helpOptions[ENV_ELASTICSEARCH] = (new CommandOption({OPTION_ELASTICSEARCH, "-es"}))
+                ->setValueKey(ENV_ELASTICSEARCH)
+                ->setDescription("Elasticsearch Image.")
+                ->setInputLabel("Elasticsearch Image")
+                ->setExampleValue(this->getDefaultValue(ENV_ELASTICSEARCH));
 
-        this->helpOptions[ENV_REDIS] = (new CommandOption({OPTION_REDIS}))->setEnvKey(ENV_REDIS)->setDescription(
-            "Redis Image.")->setInputLabel("Redis Image (Empty if not use)")->setExampleValue(
-            this->getDefaultValue(ENV_REDIS));
+        this->helpOptions[ENV_REDIS] = (new CommandOption({OPTION_REDIS}))
+                ->setValueKey(ENV_REDIS)
+                ->setDescription("Redis Image.")
+                ->setInputLabel("Redis Image (Empty if not use)")
+                ->setExampleValue(this->getDefaultValue(ENV_REDIS));
 
-        this->helpOptions[ENV_RABBITMQ] = (new CommandOption({OPTION_RABBITMQ, "-rb"}))->setEnvKey(
-            ENV_RABBITMQ)->setDescription("RabbitMQ Image.")->setInputLabel(
-            "RabbitMQ Image (Empty if not use)")->setExampleValue(this->getDefaultValue(ENV_RABBITMQ));
+        this->helpOptions[ENV_RABBITMQ] = (new CommandOption({OPTION_RABBITMQ, "-rb"}))
+                ->setValueKey(ENV_RABBITMQ)
+                ->setDescription("RabbitMQ Image.")
+                ->setInputLabel("RabbitMQ Image (Empty if not use)")
+                ->setExampleValue(this->getDefaultValue(ENV_RABBITMQ));
     }
 
     return this->helpOptions;
@@ -304,7 +349,7 @@ void DockerCompose::validateOption(const string &key, string value)
             this->showError("Option `" + key + "` invalid value.");
         }
 
-        this->values[option->getEnvKey().empty() ? option->getName() : option->getEnvKey()] = value;
+        this->values[option->getValueKey().empty() ? option->getName() : option->getValueKey()] = value;
         return;
     }
 
@@ -314,13 +359,13 @@ void DockerCompose::validateOption(const string &key, string value)
 void DockerCompose::initArguments(vector<string> arguments)
 {
     for (string arg: arguments) {
-        string            key, value;
+        string key, value;
         string::size_type splitPos = arg.find('=');
 
         if (splitPos == string::npos) {
             key = arg;
         } else {
-            key   = arg.substr(0, splitPos);
+            key = arg.substr(0, splitPos);
             value = arg.substr(splitPos + 1);
         }
 
@@ -376,8 +421,12 @@ string DockerCompose::inputOption(string key)
     CommandOption *option = this->getHelpOption(key);
 
     if (option != NULL) {
-        this->values[key] = getOptionInput(option->getInputLabel(), option->isRequired(), option->getDefaultValue(),
-                                           option->getValueOptions());
+        this->values[key] = getOptionInput(
+            option->getInputLabel(),
+            option->isRequired(),
+            option->getDefaultValue(),
+            option->getValueOptions()
+        );
 
         result = this->values[key];
     }

@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/composer.dir/command/build/composer.cpp.o -o /Projects/LEMP/cbin/composer 
