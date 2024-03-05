@@ -10,6 +10,7 @@ ENV PROJECT_TYPE=2
 ENV HTTPS true
 ENV PROXY ""
 ENV PROXY_PORT ""
+ENV SUB_PATH ""
 
 COPY include/ /etc/nginx/include/
 COPY config/*.conf /etc/nginx/conf.d/
@@ -28,7 +29,7 @@ RUN adduser -G www-data -D -u 1000 -s /bin/bash www \
     && chmod +x /entrypoint \
     && chmod +x /usr/local/bin/*
 RUN rm -f /etc/nginx/conf.d/default.conf \
-    rm -rf /var/cache/apk/*
+    && rm -rf /var/cache/apk/*
 
 WORKDIR ${ROOT_FOLDER}
 

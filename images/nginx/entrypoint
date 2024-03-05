@@ -4,6 +4,7 @@ set -e
 vhost "--folder=${ROOT_FOLDER}" \
     "--server-name=${SERVER_NAME}" \
     "--https=${HTTPS}" \
+    "--path=${SUB_PATH}" \
     "--varnish-host=${VARNISH}" \
     "--project-type=${PROJECT_TYPE}" \
     "--varnish-port=${VARNISH_PORT}" \

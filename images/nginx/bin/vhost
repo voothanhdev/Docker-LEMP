@@ -41,6 +41,9 @@ PROXY=
 PROXY_PORT=
 MAGENTO_INCLUDE="include /etc/nginx/include/magento.conf;"
 PHP_SERVER="php-server"
+SUB_PATH=""
+FILENAME=""
+
 
 ########################################################################################################################
 ### FILE PATHS #########################################################################################################
@@ -71,6 +74,7 @@ OPTION_PROXY="--proxy-host"
 OPTION_PROXY_PORT="--proxy-port"
 OPTION_SERVER_NAME="--server-name"
 OPTION_HTTPS="--https"
+OPTION_SUB_PATH="--path"
 
 
 
@@ -93,7 +97,7 @@ REAL_IP_TEMPLATE="
     real_ip_recursive  on;
 "
 PHP_LOCATION_ROOT_TEMPLATE="
-    location / {
+    location %s/ {
         try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 "
@@ -140,6 +144,7 @@ server {
     add_header Access-Control-Allow-Credentials 'true' always;
     %s%s
     %s
+    %s
 }
 "
 ## S1   Listen port
@@ -183,7 +188,7 @@ server {
 
     server_name %s;
     %s
-    location / {
+    location %s/ {
         proxy_pass %s;
         proxy_set_header Host \$host;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -218,7 +223,7 @@ server {
 
     index index.html;
     %s%s
-    location / {
+    location %s/ {
         try_files \$uri /index.html;
     }
 }
@@ -241,6 +246,7 @@ function help()
         %-40soptional\t\t\tProxy host (Empty is not forward proxy)
         %-40soptional\t\t\tProxy port
         %-40soptional\t\t\tServer name. Default: %s
+        %-40soptional\t\t\tURL sub path ([Server name]/[Path])
         -h, --help%-38s\t\t\tDisplay this help message
     " "${OPTION_FOLDER}" "${ROOT_FOLDER}" \
     "${OPTION_HTTPS}" "${BOOL_TRUE}" "${BOOL_FALSE}" "${HTTPS}" \
@@ -250,6 +256,7 @@ function help()
     "${OPTION_PROXY}" \
     "${OPTION_PROXY_PORT}" \
     "${OPTION_SERVER_NAME}" "${SERVER_NAME_DEFAULT}" \
+    "${OPTION_SUB_PATH}" \
     " "
 }
 
@@ -312,6 +319,9 @@ function mapVariable()
         "${OPTION_SERVER_NAME}")
             SERVER_NAME="$value"
             ;;
+        "${OPTION_SUB_PATH}")
+            SUB_PATH="$value"
+            ;;
         "${OPTION_HTTPS}")
             lower=$(echo "$value" | tr '[:upper:]' '[:lower:]')
             checkBoolean "$lower" "HTTPS"
@@ -333,7 +343,7 @@ function mapVariable()
 ### Generate auto switch to https config
 ##
 function autoHttps() {
-    printf "\n${AUTO_HTTPS_SERVER_TEMPLATE}\n" "$SERVER_NAME" "$SERVER_NAME" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
+    printf "\n${AUTO_HTTPS_SERVER_TEMPLATE}\n" "$SERVER_NAME" "$SERVER_NAME" >> "${FILENAME}"
 }
 
 
@@ -353,7 +363,7 @@ generatePhpDefault() {
     ssl=""
     template="$1"
 
-    echo "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+    echo "" > "${FILENAME}"
 
     if [ "$HTTPS" = "true" ]; then
         port="${SSL_PORT}"
@@ -364,7 +374,7 @@ generatePhpDefault() {
         template="${PHP_SERVER_TEMPLATE}"
     fi
 
-    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" "$2" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
+    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" "${SUB_PATH}" "$2" >> "${FILENAME}"
 }
 
 ##
@@ -382,12 +392,12 @@ function generatePhpVarnishDefault() {
         varnish="http://${varnish}"
     fi
 
-    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" "$2" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" "" "$2" > "${FILENAME}"
 
     if [ "$HTTPS" = "$BOOL_TRUE" ]; then
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
 
-        printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${varnish}" "${SSL_PROXY}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
+        printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${SUB_PATH}" "${varnish}" "${SSL_PROXY}" >> "${FILENAME}"
     fi
 }
 
@@ -400,14 +410,14 @@ function generateHtmlServer() {
     ssl=""
     template="${HTML_SERVER_TEMPLATE}"
 
-    echo "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+    echo "" > "${FILENAME}"
 
     if [ "$HTTPS" = "true" ]; then
         port="${SSL_PORT}"
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
     fi
 
-    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
+    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" "${SUB_PATH}" >> "${FILENAME}"
 }
 
 function generatePhpVarnishServer() {
@@ -417,18 +427,19 @@ function generatePhpVarnishServer() {
 function generateHtmlVarnishServer() {
     template="${HTML_SERVER_TEMPLATE}"
     varnish="${VARNISH}:${VARNISH_PORT}"
+    ssl=""
 
     if [[ "$varnish" != "http"* ]]; then
         varnish="http://${varnish}"
     fi
 
-    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" "" > "${FILENAME}"
 
     if [ "$HTTPS" = "$BOOL_TRUE" ]; then
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
-
-        printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${varnish}" "${SSL_PROXY}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
     fi
+
+    printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${SUB_PATH}" "${varnish}" "${SSL_PROXY}" >> "${FILENAME}"
 }
 
 function generateMagentoServer() {
@@ -445,7 +456,7 @@ function generateForwardServer() {
     sslProxy=""
     proxy="${PROXY}:${PROXY_PORT}"
 
-    echo "" > "${CONFIG_PATH}${SERVER_NAME}.conf"
+    echo "" > "${FILENAME}"
 
     if [ "$HTTPS" = "$BOOL_TRUE" ]; then
         port="${SSL_PORT}"
@@ -457,7 +468,7 @@ function generateForwardServer() {
         proxy="http://${proxy}"
     fi
 
-    printf "${FORWARD_SERVER_TEMPLATE}" "${port}" "${SERVER_NAME}" "${ssl}" "${proxy}" "${sslProxy}" >> "${CONFIG_PATH}${SERVER_NAME}.conf"
+    printf "${FORWARD_SERVER_TEMPLATE}" "${port}" "${SERVER_NAME}" "${ssl}" "${SUB_PATH}" "${proxy}" "${sslProxy}" >> "${FILENAME}"
 }
 
 for item in "$@"
@@ -475,6 +486,12 @@ fi
 
 if [ -z "$PROJECT_TYPE" ]; then
     msgError "Project type is required.\n" && help && exit
+fi
+
+FILENAME="${CONFIG_PATH}${SERVER_NAME}${SUB_PATH}.conf"
+
+if [ -n "${SUB_PATH}" ]; then
+    SUB_PATH="/${SUB_PATH}"
 fi
 
 case $PROJECT_TYPE in
