@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 ########################################################################################################################
 ### Notification #######################################################################################################
 ########################################################################################################################
@@ -48,7 +51,7 @@ FILENAME=""
 ########################################################################################################################
 ### FILE PATHS #########################################################################################################
 ########################################################################################################################
-CONFIG_PATH=/etc/nginx/conf.d/
+CONFIG_PATH=/etc/nginx/sites-enabled/
 FILE_PHP_BE="${CONFIG_PATH}php.conf"
 
 
@@ -81,11 +84,12 @@ OPTION_SUB_PATH="--path"
 ########################################################################################################################
 ### TEMPLATES ##########################################################################################################
 ########################################################################################################################
+SERVER_EXTEND_TXT="#SERVER_EXTEND"
 SSL_PORT="443 ssl"
 SSL_PROXY="
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-Port 443;
-        proxy_set_header X-Secure on;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Port 443;
+    proxy_set_header X-Secure on;
 "
 SSL_TEMPLATE="
     ssl_certificate /etc/nginx/ssl/%s.crt;
@@ -96,12 +100,60 @@ REAL_IP_TEMPLATE="
     real_ip_header     X-Forwarded-For;
     real_ip_recursive  on;
 "
-PHP_LOCATION_ROOT_TEMPLATE="
-    location %s/ {
+CORS="
+    # Add cors
+    set \$origin '\$http_origin';
+    add_header 'Access-Control-Allow-Origin' '\$origin' always;
+    add_header Access-Control-Allow-Methods 'GET, POST, PATCH, PUT, DELETE, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With,X-Cache-Hash,Store' always;
+    add_header Access-Control-Expose-Headers 'Content-Length,Content-Range' always;
+    add_header Access-Control-Allow-Credentials 'true' always;
+"
+PHP_BE_TEMPLATE="
+upstream ${PHP_SERVER} {
+    server unix:/sock/docker.sock;
+}
+"
+## S1   Port
+## S2   Server name
+## S3   Content
+SERVER_TEMPLATE="
+server {
+    listen %s;
+    server_name %s;
+
+    %s
+    ${SERVER_EXTEND_TXT}
+}
+"
+## S1   Root folder
+## S2   Real Ip config
+## S3   SSL config
+## S5   Include
+MAGENTO_SERVER_TEMPLATE="
+    set \$MAGE_ROOT %s;
+
+    ${CORS}
+    %s%s
+    %s
+"
+## S1   Root folder
+## S2   Real Ip config
+## S3   SSL config
+## S4   Include
+PHP_SERVER_TEMPLATE="
+    root %s;
+
+    index index.php;
+
+    ${CORS}
+
+    %s%s
+
+    location / {
         try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
-"
-PHP_LOCATION_TEMPLATE="
+
     location ~ \.php\$ {
         try_files \$uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)\$;
@@ -111,82 +163,18 @@ PHP_LOCATION_TEMPLATE="
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
         fastcgi_param PATH_INFO \$fastcgi_path_info;
     }
-"
-HT_LOCATION_TEMPLATE="
+
     location ~ /\.ht {
         deny all;
     }
-"
-PHP_BE_TEMPLATE="
-upstream ${PHP_SERVER} {
-    server unix:/sock/docker.sock;
-}
-"
-## S1   Listen port
-## S2   Server name
-## S3   Root folder
-## S4   Real Ip config
-## S5   SSL config
-## S6   Include
-MAGENTO_SERVER_TEMPLATE="
-server {
-    listen %s;
-    server_name %s;
 
-    set \$MAGE_ROOT %s;
-
-    # Add cors
-    set \$origin '\$http_origin';
-    add_header 'Access-Control-Allow-Origin' '\$origin' always;
-    add_header Access-Control-Allow-Methods 'GET, POST, PATCH, PUT, DELETE, OPTIONS' always;
-    add_header 'Access-Control-Allow-Headers' 'Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With,X-Cache-Hash,Store' always;
-    add_header Access-Control-Expose-Headers 'Content-Length,Content-Range' always;
-    add_header Access-Control-Allow-Credentials 'true' always;
-    %s%s
     %s
-    %s
-}
 "
-## S1   Listen port
-## S2   Server name
-## S3   Root folder
-## S4   Real Ip config
-## S5   SSL config
-## S6   Include
-PHP_SERVER_TEMPLATE="
-server {
-    listen %s;
-
-    server_name %s;
-
-    root %s;
-
-    index index.php;
-
-    # Add cors
-    set \$origin '\$http_origin';
-    add_header 'Access-Control-Allow-Origin' '\$origin' always;
-    add_header Access-Control-Allow-Methods 'GET, POST, PATCH, PUT, DELETE, OPTIONS' always;
-    add_header 'Access-Control-Allow-Headers' 'Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With,X-Cache-Hash,Store' always;
-    add_header Access-Control-Expose-Headers 'Content-Length,Content-Range' always;
-    add_header Access-Control-Allow-Credentials 'true' always;
-    %s%s
-    ${PHP_LOCATION_ROOT_TEMPLATE}
-    ${PHP_LOCATION_TEMPLATE}
-    ${HT_LOCATION_TEMPLATE}
-    %s
-}
-"
-## S1   Listen port
-## S2   Server name
-## S3   SSL config
-## S4   Proxy pass
-## S5   SSL proxy
+## S1   SSL config
+## S2   Server name sub path
+## S3   Proxy pass
+## S4   SSL proxy
 FORWARD_SERVER_TEMPLATE="
-server {
-    listen %s;
-
-    server_name %s;
     %s
     location %s/ {
         proxy_pass %s;
@@ -197,7 +185,6 @@ server {
         %s
         proxy_redirect off;
     }
-}
 "
 AUTO_HTTPS_SERVER_TEMPLATE="
 server {
@@ -208,25 +195,17 @@ server {
     return 301 https://%s\$request_uri;
 }
 "
-## S1   Listen port
-## S2   Server name
-## S3   Root folder
-## S4   Real Ip config
-## S5   SSL config
+## S1   Root folder
+## S2   Real Ip config
+## S3   SSL config
 HTML_SERVER_TEMPLATE="
-server {
-    listen %s;
-
-    server_name %s;
-
     root %s;
 
     index index.html;
     %s%s
-    location %s/ {
+    location / {
         try_files \$uri /index.html;
     }
-}
 "
 
 ########################################################################################################################
@@ -245,8 +224,8 @@ function help()
         %-40soptional\t\t\tVarnish port. Default: %s
         %-40soptional\t\t\tProxy host (Empty is not forward proxy)
         %-40soptional\t\t\tProxy port
+        %-40soptional\t\t\tProxy sub path ([Server name]/[Path])
         %-40soptional\t\t\tServer name. Default: %s
-        %-40soptional\t\t\tURL sub path ([Server name]/[Path])
         -h, --help%-38s\t\t\tDisplay this help message
     " "${OPTION_FOLDER}" "${ROOT_FOLDER}" \
     "${OPTION_HTTPS}" "${BOOL_TRUE}" "${BOOL_FALSE}" "${HTTPS}" \
@@ -255,8 +234,8 @@ function help()
     "${OPTION_VARNISH_PORT}"  "${VARNISH_PORT}" \
     "${OPTION_PROXY}" \
     "${OPTION_PROXY_PORT}" \
-    "${OPTION_SERVER_NAME}" "${SERVER_NAME_DEFAULT}" \
     "${OPTION_SUB_PATH}" \
+    "${OPTION_SERVER_NAME}" "${SERVER_NAME_DEFAULT}" \
     " "
 }
 
@@ -363,8 +342,6 @@ generatePhpDefault() {
     ssl=""
     template="$1"
 
-    echo "" > "${FILENAME}"
-
     if [ "$HTTPS" = "true" ]; then
         port="${SSL_PORT}"
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
@@ -374,7 +351,9 @@ generatePhpDefault() {
         template="${PHP_SERVER_TEMPLATE}"
     fi
 
-    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" "${SUB_PATH}" "$2" >> "${FILENAME}"
+    template="$(printf "$template" "${FOLDER}" "" "${ssl}" "$2")"
+
+    printf "${SERVER_TEMPLATE}" "${port}" "${SERVER_NAME}" "${template}" > "${FILENAME}"
 }
 
 ##
@@ -392,12 +371,15 @@ function generatePhpVarnishDefault() {
         varnish="http://${varnish}"
     fi
 
-    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" "" "$2" > "${FILENAME}"
+    template="$(printf "${templte}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" "$2" )"
+
+    printf "${SERVER_TEMPLATE}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${templte}" > "${FILENAME}"
 
     if [ "$HTTPS" = "$BOOL_TRUE" ]; then
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
+        forwardTemplate="$(printf "${FORWARD_SERVER_TEMPLATE}" "${ssl}" "${SUB_PATH}" "${varnish}" "${SSL_PROXY}")"
 
-        printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${SUB_PATH}" "${varnish}" "${SSL_PROXY}" >> "${FILENAME}"
+        printf "\n\n${SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${forwardTemplate}" >> "${FILENAME}"
     fi
 }
 
@@ -408,16 +390,15 @@ function generatePhpServer() {
 function generateHtmlServer() {
     port=80
     ssl=""
-    template="${HTML_SERVER_TEMPLATE}"
-
-    echo "" > "${FILENAME}"
 
     if [ "$HTTPS" = "true" ]; then
         port="${SSL_PORT}"
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
     fi
 
-    printf "${template}" "${port}" "${SERVER_NAME}" "${FOLDER}" "" "${ssl}" "${SUB_PATH}" >> "${FILENAME}"
+    template="$(printf "${HTML_SERVER_TEMPLATE}" "${FOLDER}" "" "${ssl}")"
+
+    printf "${SERVER_TEMPLATE}" "${port}" "${SERVER_NAME}" "${template}" >> "${FILENAME}"
 }
 
 function generatePhpVarnishServer() {
@@ -433,13 +414,16 @@ function generateHtmlVarnishServer() {
         varnish="http://${varnish}"
     fi
 
-    printf "${template}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "" "" > "${FILENAME}"
+    template="$(printf "${template}" "${FOLDER}" "${REAL_IP_TEMPLATE}" "")"
+
+    printf "${SERVER_TEMPLATE}" "${VARNISH_BE_PORT}" "${SERVER_NAME}" "${template}" > "${FILENAME}"
 
     if [ "$HTTPS" = "$BOOL_TRUE" ]; then
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
-    fi
+        forwardTemplate="$(printf "${FORWARD_SERVER_TEMPLATE}" "${ssl}" "${SUB_PATH}" "${varnish}" "${SSL_PROXY}")"
 
-    printf "\n\n${FORWARD_SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${ssl}" "${SUB_PATH}" "${varnish}" "${SSL_PROXY}" >> "${FILENAME}"
+        printf "\n\n${SERVER_TEMPLATE}" "${SSL_PORT}" "${SERVER_NAME}" "${forwardTemplate}" >> "${FILENAME}"
+    fi
 }
 
 function generateMagentoServer() {
@@ -456,8 +440,6 @@ function generateForwardServer() {
     sslProxy=""
     proxy="${PROXY}:${PROXY_PORT}"
 
-    echo "" > "${FILENAME}"
-
     if [ "$HTTPS" = "$BOOL_TRUE" ]; then
         port="${SSL_PORT}"
         ssl="$(printf "${SSL_TEMPLATE}" "${SERVER_NAME}" "${SERVER_NAME}")"
@@ -468,7 +450,23 @@ function generateForwardServer() {
         proxy="http://${proxy}"
     fi
 
-    printf "${FORWARD_SERVER_TEMPLATE}" "${port}" "${SERVER_NAME}" "${ssl}" "${SUB_PATH}" "${proxy}" "${sslProxy}" >> "${FILENAME}"
+    template="$(printf "${FORWARD_SERVER_TEMPLATE}" "${ssl}" "${SUB_PATH}" "${proxy}" "${sslProxy}")"
+
+    if [ -f "${FILENAME}" ] && [ -n "${SUB_PATH}" ]; then
+        template="$(printf "${template}" | sed 's/[\.\/]/\\&/g')"
+        readarray -t array <<< "$template"
+
+        for item in "${array[@]}"
+        do
+            sed -i.bak "s/${SERVER_EXTEND_TXT}/${item}\n${SERVER_EXTEND_TXT}/g" "${FILENAME}"
+        done
+
+        if [ -f "${FILENAME}.bak" ]; then
+            rm "${FILENAME}.bak"
+        fi
+    else
+        printf "\n\n${SERVER_TEMPLATE}" "${port}" "${SERVER_NAME}" "${template}" >> "${FILENAME}"
+    fi
 }
 
 for item in "$@"
@@ -488,7 +486,7 @@ if [ -z "$PROJECT_TYPE" ]; then
     msgError "Project type is required.\n" && help && exit
 fi
 
-FILENAME="${CONFIG_PATH}${SERVER_NAME}${SUB_PATH}.conf"
+FILENAME="${CONFIG_PATH}${SERVER_NAME}.conf"
 
 if [ -n "${SUB_PATH}" ]; then
     SUB_PATH="/${SUB_PATH}"

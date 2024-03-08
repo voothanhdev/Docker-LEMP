@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+NGINX_VHOST_PATH=/etc/nginx/sites-enabled/
+mkdir -p "${NGINX_VHOST_PATH}"
+rm -f "${NGINX_VHOST_PATH}"*
+
 vhost "--folder=${ROOT_FOLDER}" \
     "--server-name=${SERVER_NAME}" \
     "--https=${HTTPS}" \
